@@ -98,6 +98,10 @@ def home(request):
     return render(request, "home.html")
 
 
+def plan_my_trip(request):
+    return render(request, "plan_my_trip.html")
+
+
 @login_required(login_url="/admin-portal/login/")
 def admin_home(request):
     if not request.user.is_staff:

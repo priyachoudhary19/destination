@@ -1,28 +1,47 @@
 {% extends 'base.html' %}
-
+{% load static %}
 {% block content %}
 
 <section class="admin-home-page">
-    <div class="text-center mb-4">
-        <p class="hero-kicker mb-2">ADMIN CONTROL PANEL</p>
-        <h2>Admin Home</h2>
-        <p class="text-muted mb-0">Manage travel packages and booking workflows from one place.</p>
-    </div>
-
-    <div class="row g-4 justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="manage-card h-100">
-                <h4>Manage Packages</h4>
-                <p class="text-muted">Open the package management page to create, edit, view, and delete packages.</p>
-                <a href="{% url 'manage_packages' %}" class="btn btn-primary">Open Manage Packages</a>
+    <div class="admin-home-hero mb-4">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-7">
+                <p class="hero-kicker mb-2">ADMIN CONTROL PANEL</p>
+                <h2>Dreamland Admin Home</h2>
+                <p class="mb-0">Manage travel packages and booking workflows from one place with a clean and simple dashboard.</p>
+            </div>
+            <div class="col-lg-5">
+                <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80" alt="Admin travel dashboard" class="admin-home-hero-image">
             </div>
         </div>
+    </div>
 
-        <div class="col-md-6 col-lg-5">
-            <div class="manage-card h-100">
-                <h4>Manage Bookings</h4>
-                <p class="text-muted">Booking management section is reserved for upcoming implementation.</p>
-                <a href="{% url 'manage_bookings' %}" class="btn btn-outline-primary">Open Manage Bookings</a>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-6">
+            <article class="admin-panel-card admin-panel-card-primary h-100">
+                <img src="{% static 'images/managepackages.jpg' %}" alt="Manage travel packages" class="admin-panel-image">
+                <div class="admin-panel-content">
+                    <h4>Manage Packages</h4>
+                    <p>Open package management to create, view, update, and delete packages.</p>
+                    <a href="{% url 'manage_packages' %}" class="btn btn-primary">Open Manage Packages</a>
+                </div>
+            </article>
+        </div>
+
+        <div class="col-md-6 col-lg-6">
+            <article class="admin-panel-card admin-panel-card-accent h-100">
+                <img src="{% static 'images/managebooking.jpg' %}" alt="Manage bookings section" class="admin-panel-image">
+                <div class="admin-panel-content">
+                    <h4>Manage Bookings</h4>
+                    <p>Booking management section is reserved for upcoming implementation.</p>
+                    <a href="{% url 'manage_bookings' %}" class="btn btn-outline-primary">Open Manage Bookings</a>
+                </div>
+            </article>
+        </div>
+
+        <div class="col-12">
+            <div class="admin-tip-strip">
+                
             </div>
         </div>
     </div>

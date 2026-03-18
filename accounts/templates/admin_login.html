@@ -19,11 +19,22 @@
             <input type="hidden" name="next" value="{{ next|default:'' }}">
             <div class="mb-3">
                 <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="off" required>
+                <input type="text" 
+                    name="username" 
+                    class="form-control" 
+                    placeholder="Username" 
+                    autocomplete="off" 
+                    required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input type="password" name="password" class="form-control" placeholder="Enter password" autocomplete="new-password" data-lpignore="true" required>
+                <input type="password" 
+                    name="password" 
+                    class="form-control" 
+                    placeholder="Enter password" 
+                    autocomplete="off" 
+                    data-lpignore="true" 
+                    required>
             </div>
             <button type="submit" class="btn btn-primary w-100 auth-btn">Login to Admin Portal</button>
         </form>
