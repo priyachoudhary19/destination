@@ -653,11 +653,25 @@ img {
 }
 
 .package-meta { color: var(--muted); }
+.package-desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.55;
+    min-height: calc(1.55em * 2);
+    max-height: calc(1.55em * 2);
+}
 .package-price {
     margin-top: auto;
     color: var(--primary);
     font-weight: 800;
     font-size: 1.2rem;
+}
+
+.package-body .btn {
+    margin-top: auto;
 }
 
 .package-detail-points {

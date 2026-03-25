@@ -14,7 +14,10 @@ import os
 from pathlib import Path
 from importlib.util import find_spec
 
-import dj_database_url
+try:
+    import dj_database_url
+except ModuleNotFoundError:
+    dj_database_url = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -117,6 +120,11 @@ WSGI_APPLICATION = 'project.wsgi.application'
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
 if DATABASE_URL:
+    if dj_database_url is None:
+        raise RuntimeError(
+            "DATABASE_URL is set but dj-database-url is not installed. "
+            "Run `pip install -r requirements.txt` in this environment."
+        )
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -210,3 +218,10 @@ RAZORPAY_CURRENCY = os.environ.get('RAZORPAY_CURRENCY', 'INR')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', str(not DEBUG)).lower() == 'true'
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get(
+    'SECURE_HSTS_INCLUDE_SUBDOMAINS',
+    str(not DEBUG),
+).lower() == 'true'
+SECURE_HSTS_PRELOAD = os.environ.get('SECURE_HSTS_PRELOAD', 'False').lower() == 'true'

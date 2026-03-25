@@ -39,7 +39,13 @@
                     <p class="package-meta"><i class="fa-regular fa-clock"></i> {{ package.duration }} Days / {{ package.duration|add:"-1" }} Nights</p>
                     {% if is_preview %}
                         {% if package.short_description %}
-                        <p class="package-desc">{{ package.short_description|truncatechars:90 }}</p>
+                        <p class="package-desc">
+                            {% if package.short_description|length > 65 %}
+                                {{ package.short_description|slice:":65" }}.....
+                            {% else %}
+                                {{ package.short_description }}
+                            {% endif %}
+                        </p>
                         {% else %}
                         <p class="package-desc">Handpicked stay, guided sightseeing, and smooth local transport.</p>
                         {% endif %}
