@@ -1,13 +1,117 @@
+import base64
+import hashlib
+import hmac
+import json
+import logging
+from decimal import Decimal
+from urllib import error, request as urllib_request
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404, redirect, render
 from django.core.mail import send_mail
-from django.conf import settings
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from .forms import TravelBookingForm, TravelPackageForm
 from .models import TravelBooking, TravelPackage, registration
+
+
+logger = logging.getLogger(__name__)
+
+
+def razorpay_configured():
+    return bool(settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET)
+
+
+def to_paise(amount):
+    return int((amount * Decimal("100")).quantize(Decimal("1")))
+
+
+def create_razorpay_order(booking):
+    if not razorpay_configured():
+        raise ValueError("Razorpay credentials are missing.")
+
+    payload = {
+        "amount": to_paise(booking.payment_amount),
+        "currency": booking.currency,
+        "receipt": f"booking-{booking.id}",
+        "notes": {
+            "booking_id": str(booking.id),
+            "package_id": str(booking.package_id),
+            "user_id": str(booking.user_id),
+        },
+    }
+    request_body = json.dumps(payload).encode("utf-8")
+    credentials = f"{settings.RAZORPAY_KEY_ID}:{settings.RAZORPAY_KEY_SECRET}".encode("utf-8")
+    headers = {
+        "Authorization": f"Basic {base64.b64encode(credentials).decode('ascii')}",
+        "Content-Type": "application/json",
+    }
+    api_request = urllib_request.Request(
+        "https://api.razorpay.com/v1/orders",
+        data=request_body,
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib_request.urlopen(api_request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="ignore")
+        logger.warning("Razorpay order creation failed: %s", body)
+        raise ValueError("Razorpay order create nahi ho paaya.") from exc
+    except error.URLError as exc:
+        logger.warning("Razorpay order creation network error: %s", exc)
+        raise ValueError("Razorpay se connection nahi ho paaya.") from exc
+
+
+def verify_razorpay_signature(order_id, payment_id, signature):
+    if not settings.RAZORPAY_KEY_SECRET:
+        return False
+
+    payload = f"{order_id}|{payment_id}".encode("utf-8")
+    expected_signature = hmac.new(
+        settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+        payload,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected_signature, signature)
+
+
+def verify_razorpay_webhook_signature(body, signature):
+    if not settings.RAZORPAY_WEBHOOK_SECRET or not signature:
+        return False
+
+    expected_signature = hmac.new(
+        settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+        body,
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected_signature, signature)
+
+
+def update_booking_payment(booking, payment_id="", signature="", status=None, error_message=""):
+    if payment_id:
+        booking.razorpay_payment_id = payment_id
+    if signature:
+        booking.razorpay_signature = signature
+    if status:
+        booking.payment_status = status
+    if error_message:
+        booking.last_payment_error = error_message[:255]
+    if status in {
+        TravelBooking.PAYMENT_STATUS_ADVANCE,
+        TravelBooking.PAYMENT_STATUS_COMPLETED,
+    }:
+        booking.paid_at = timezone.now()
+        booking.last_payment_error = ""
+    booking.save()
 
 
 def register(request):
@@ -136,10 +240,32 @@ def package_detail(request, package_id):
     package = get_object_or_404(TravelPackage, id=package_id, is_active=True)
     booking = None
     booking_form = None
+    payment_context = None
 
     if request.user.is_authenticated:
         booking = TravelBooking.objects.filter(user=request.user, package=package).first()
         booking_form = TravelBookingForm(instance=booking)
+        if (
+            booking
+            and booking.payment_method == TravelBooking.PAYMENT_METHOD_RAZORPAY
+            and booking.payment_status != TravelBooking.PAYMENT_STATUS_COMPLETED
+            and booking.razorpay_order_id
+            and razorpay_configured()
+        ):
+            payment_context = {
+                "key_id": settings.RAZORPAY_KEY_ID,
+                "amount": to_paise(booking.payment_amount),
+                "currency": booking.currency,
+                "company_name": settings.RAZORPAY_COMPANY_NAME,
+                "description": f"{package.title} booking",
+                "order_id": booking.razorpay_order_id,
+                "callback_url": request.build_absolute_uri(reverse("razorpay_callback")),
+                "prefill_name": request.user.get_full_name() or request.user.username,
+                "prefill_email": request.user.email,
+                "prefill_contact": booking.contact_number,
+                "theme_color": "#1f6feb",
+                "auto_open": request.GET.get("pay") == "1",
+            }
 
     return render(
         request,
@@ -148,6 +274,8 @@ def package_detail(request, package_id):
             "package": package,
             "booking": booking,
             "booking_form": booking_form,
+            "payment_context": payment_context,
+            "razorpay_ready": razorpay_configured(),
             "is_preview": not request.user.is_authenticated,
         },
     )
@@ -180,7 +308,41 @@ def book_package(request, package_id):
     booking.user = request.user
     booking.package = package
     created = booking.pk is None
+    booking.payment_amount = booking.total_price()
+    booking.currency = settings.RAZORPAY_CURRENCY or "INR"
+
+    if booking.payment_method != TravelBooking.PAYMENT_METHOD_RAZORPAY:
+        booking.razorpay_order_id = ""
+        booking.razorpay_payment_id = ""
+        booking.razorpay_signature = ""
+        booking.razorpay_last_event_id = ""
+        booking.last_payment_error = ""
+
     booking.save()
+
+    if booking.payment_method == TravelBooking.PAYMENT_METHOD_RAZORPAY:
+        if booking.payment_status == TravelBooking.PAYMENT_STATUS_COMPLETED:
+            messages.info(request, "Is booking ka payment already complete hai.")
+            return redirect("package_detail", package_id=package.id)
+
+        try:
+            order_data = create_razorpay_order(booking)
+        except ValueError as exc:
+            booking.last_payment_error = str(exc)
+            booking.save(update_fields=["last_payment_error"])
+            messages.error(request, str(exc))
+            return redirect("package_detail", package_id=package.id)
+
+        booking.razorpay_order_id = order_data.get("id", "")
+        booking.last_payment_error = ""
+        booking.payment_status = TravelBooking.PAYMENT_STATUS_PENDING
+        booking.save(update_fields=["razorpay_order_id", "last_payment_error", "payment_status"])
+
+        if created:
+            messages.success(request, f"{package.title} booking created. Ab payment complete kar dijiye.")
+        else:
+            messages.info(request, f"{package.title} booking update ho gayi. Payment complete kar dijiye.")
+        return redirect(f"{reverse('package_detail', args=[package.id])}?pay=1")
 
     if created:
         messages.success(request, f"{package.title} booked successfully.")
@@ -238,6 +400,7 @@ def manage_bookings(request):
             or booking.user.get_full_name()
             or booking.user.username
         )
+        booking.display_amount = booking.payment_amount or booking.total_price()
 
     return render(request, "admin_bookings.html", {"bookings": bookings})
 
@@ -272,6 +435,95 @@ def edit_package(request, package_id):
         form = TravelPackageForm(instance=package)
 
     return render(request, "admin_package_edit.html", {"form": form, "package": package})
+
+
+@csrf_exempt
+def razorpay_callback(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid request method.")
+
+    order_id = request.POST.get("razorpay_order_id", "").strip()
+    payment_id = request.POST.get("razorpay_payment_id", "").strip()
+    signature = request.POST.get("razorpay_signature", "").strip()
+
+    if not order_id or not payment_id or not signature:
+        return HttpResponseBadRequest("Missing payment details.")
+
+    booking = TravelBooking.objects.filter(razorpay_order_id=order_id).select_related("package").first()
+    if not booking:
+        return HttpResponseBadRequest("Booking not found.")
+
+    if not verify_razorpay_signature(order_id, payment_id, signature):
+        update_booking_payment(
+            booking,
+            payment_id=payment_id,
+            signature=signature,
+            status=TravelBooking.PAYMENT_STATUS_FAILED,
+            error_message="Payment signature verification failed.",
+        )
+        return HttpResponseForbidden("Signature verification failed.")
+
+    update_booking_payment(
+        booking,
+        payment_id=payment_id,
+        signature=signature,
+        status=TravelBooking.PAYMENT_STATUS_COMPLETED,
+    )
+    messages.success(request, f"Payment successful for {booking.package.title}.")
+    return redirect("package_detail", package_id=booking.package_id)
+
+
+@csrf_exempt
+def razorpay_webhook(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid request method.")
+
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    body = request.body
+    if not verify_razorpay_webhook_signature(body, signature):
+        return HttpResponseForbidden("Webhook signature verification failed.")
+
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON payload.")
+
+    event = payload.get("event", "")
+    event_id = request.headers.get("X-Razorpay-Event-Id", "")
+    payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+    order_entity = payload.get("payload", {}).get("order", {}).get("entity", {})
+    order_id = payment_entity.get("order_id") or order_entity.get("id")
+
+    if not order_id:
+        return HttpResponse("ok")
+
+    booking = TravelBooking.objects.filter(razorpay_order_id=order_id).first()
+    if not booking:
+        return HttpResponse("ok")
+
+    if event_id and booking.razorpay_last_event_id == event_id:
+        return HttpResponse("ok")
+
+    booking.razorpay_last_event_id = event_id
+
+    if event in {"payment.captured", "order.paid"}:
+        booking.payment_status = TravelBooking.PAYMENT_STATUS_COMPLETED
+        booking.razorpay_payment_id = payment_entity.get("id", booking.razorpay_payment_id)
+        booking.paid_at = timezone.now()
+        booking.last_payment_error = ""
+    elif event == "payment.authorized":
+        booking.payment_status = TravelBooking.PAYMENT_STATUS_ADVANCE
+        booking.razorpay_payment_id = payment_entity.get("id", booking.razorpay_payment_id)
+        booking.paid_at = booking.paid_at or timezone.now()
+        booking.last_payment_error = ""
+    elif event == "payment.failed":
+        booking.payment_status = TravelBooking.PAYMENT_STATUS_FAILED
+        booking.razorpay_payment_id = payment_entity.get("id", booking.razorpay_payment_id)
+        error_description = payment_entity.get("error_description") or "Payment failed."
+        booking.last_payment_error = error_description[:255]
+
+    booking.save()
+    return HttpResponse("ok")
 
 
 def logout_view(request):

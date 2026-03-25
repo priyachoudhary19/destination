@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: dreamland
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: gunicorn project.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: dreamland.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://dreamland.onrender.com
+      - key: RAZORPAY_COMPANY_NAME
+        value: Dreamland Destinations
+      - key: RAZORPAY_CURRENCY
+        value: INR
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dreamland-db
+          property: connectionString
+
+databases:
+  - name: dreamland-db
+    plan: free

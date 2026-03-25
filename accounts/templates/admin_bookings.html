@@ -13,6 +13,7 @@
                     <tr>
                         <th>User</th>
                         <th>Package</th>
+                        <th>Payment</th>
                         <th>Travel Date</th>
                         <th>Travelers</th>
                         <th>Contact</th>
@@ -32,6 +33,13 @@
                             <div class="table-subtext">{{ booking.special_requests }}</div>
                             {% endif %}
                         </td>
+                        <td>
+                            <strong>{{ booking.get_payment_status_display }}</strong>
+                            <div class="table-subtext">{{ booking.get_payment_method_display }} • Rs {{ booking.display_amount }}</div>
+                            {% if booking.razorpay_payment_id %}
+                            <div class="table-subtext">{{ booking.razorpay_payment_id }}</div>
+                            {% endif %}
+                        </td>
                         <td>{{ booking.travel_date|default:"Not selected" }}</td>
                         <td>{{ booking.traveler_count }}</td>
                         <td>{{ booking.contact_number|default:"-" }}</td>
@@ -42,7 +50,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center">No users have made a booking yet.</td>
+                        <td colspan="7" class="text-center">No users have made a booking yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

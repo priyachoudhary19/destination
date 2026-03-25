@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 
 
 class Author(models.Model):
@@ -47,16 +48,20 @@ class TravelBooking(models.Model):
     PAYMENT_STATUS_PENDING = "pending"
     PAYMENT_STATUS_ADVANCE = "advance_paid"
     PAYMENT_STATUS_COMPLETED = "completed"
+    PAYMENT_STATUS_FAILED = "failed"
     PAYMENT_STATUS_CHOICES = [
         (PAYMENT_STATUS_PENDING, "Pending"),
         (PAYMENT_STATUS_ADVANCE, "Advance Paid"),
         (PAYMENT_STATUS_COMPLETED, "Completed"),
+        (PAYMENT_STATUS_FAILED, "Failed"),
     ]
 
+    PAYMENT_METHOD_RAZORPAY = "razorpay"
     PAYMENT_METHOD_UPI = "upi"
     PAYMENT_METHOD_BANK = "bank_transfer"
     PAYMENT_METHOD_CASH = "cash"
     PAYMENT_METHOD_CHOICES = [
+        (PAYMENT_METHOD_RAZORPAY, "Razorpay (Online Payment)"),
         (PAYMENT_METHOD_UPI, "UPI"),
         (PAYMENT_METHOD_BANK, "Bank Transfer"),
         (PAYMENT_METHOD_CASH, "Cash at Office"),
@@ -78,6 +83,14 @@ class TravelBooking(models.Model):
         choices=PAYMENT_STATUS_CHOICES,
         default=PAYMENT_STATUS_PENDING,
     )
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    currency = models.CharField(max_length=3, default="INR")
+    razorpay_order_id = models.CharField(max_length=100, blank=True)
+    razorpay_payment_id = models.CharField(max_length=100, blank=True)
+    razorpay_signature = models.CharField(max_length=255, blank=True)
+    razorpay_last_event_id = models.CharField(max_length=100, blank=True)
+    paid_at = models.DateTimeField(blank=True, null=True)
+    last_payment_error = models.CharField(max_length=255, blank=True)
     booked_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -86,3 +99,6 @@ class TravelBooking(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.package.title}"
+
+    def total_price(self):
+        return self.package.price * self.traveler_count
