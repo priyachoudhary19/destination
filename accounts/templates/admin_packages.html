@@ -34,14 +34,6 @@
                         {{ form.image.errors }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Image URL</label>
-                        {{ form.image_url }}
-                        {% if form.image_url.help_text %}
-                        <div class="form-text">{{ form.image_url.help_text }}</div>
-                        {% endif %}
-                        {{ form.image_url.errors }}
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Short Description</label>
                         {{ form.short_description }}
                     </div>
@@ -114,15 +106,15 @@
                                         <strong class="package-table-title">{{ item.title }}</strong>
                                     </div>
                                 </td>
-                                <td>{{ item.duration }}</td>
+                                <td><span class="package-days-value">{{ item.duration }} Days</span></td>
                                 <td>
                                     <span class="package-price-value">Rs {{ item.price|floatformat:0 }}</span>
                                 </td>
                                 <td>
                                     {% if item.is_active %}
-                                    <span class="badge text-bg-success">Active</span>
+                                    <span class="package-status-chip package-status-chip-active">Active</span>
                                     {% else %}
-                                    <span class="badge text-bg-secondary">Inactive</span>
+                                    <span class="package-status-chip package-status-chip-inactive">Inactive</span>
                                     {% endif %}
                                 </td>
                                 <td>

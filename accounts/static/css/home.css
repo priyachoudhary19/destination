@@ -1445,7 +1445,7 @@ img {
 .manage-packages-table {
     table-layout: auto;
     margin-bottom: 0;
-    min-width: 860px;
+    min-width: 920px;
 }
 
 .manage-packages-table th:nth-child(1) {
@@ -1453,27 +1453,30 @@ img {
 }
 
 .manage-packages-table th:nth-child(2) {
-    width: 14%;
+    width: 12%;
 }
 
 .manage-packages-table th:nth-child(3) {
-    width: 28%;
+    width: 31%;
 }
 
 .manage-packages-table th:nth-child(4),
 .manage-packages-table th:nth-child(5),
 .manage-packages-table th:nth-child(6) {
-    width: 12%;
+    width: 11%;
 }
 
 .manage-packages-table th:nth-child(7) {
-    width: 16%;
+    width: 18%;
 }
 
 .package-table-thumb {
-    width: 60px;
-    height: 42px;
-    border-radius: 10px;
+    width: 78px;
+    height: 54px;
+    border-radius: 14px;
+    object-fit: cover;
+    border: 1px solid rgba(186, 203, 231, 0.9);
+    box-shadow: 0 10px 18px rgba(49, 84, 146, 0.12);
 }
 
 .package-table-thumb-placeholder {
@@ -1494,7 +1497,9 @@ img {
     display: block;
     color: #17263f;
     line-height: 1.4;
-    min-width: 150px;
+    min-width: 180px;
+    font-size: 1.02rem;
+    font-weight: 700;
 }
 
 .package-price-value {
@@ -1504,18 +1509,56 @@ img {
     font-weight: 700;
     color: #1f3558;
     font-variant-numeric: tabular-nums;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(232, 241, 255, 0.95);
+    border: 1px solid rgba(184, 204, 236, 0.95);
+}
+
+.package-days-value {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    font-weight: 600;
+    color: #415577;
+}
+
+.package-status-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.package-status-chip-active {
+    background: rgba(43, 148, 87, 0.12);
+    color: #1d7a4a;
+    border: 1px solid rgba(43, 148, 87, 0.18);
+}
+
+.package-status-chip-inactive {
+    background: rgba(100, 116, 139, 0.12);
+    color: #526176;
+    border: 1px solid rgba(100, 116, 139, 0.18);
 }
 
 .manage-packages-actions {
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .manage-packages-actions .btn {
-    min-width: 0;
+    min-width: 86px;
     border-radius: 12px;
-    padding: 5px 12px;
-    font-size: 0.92rem;
+    padding: 7px 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
 }
 
 .manage-packages-actions form {
@@ -1534,7 +1577,7 @@ img {
 
 .manage-table th,
 .manage-table td {
-    padding: 16px 12px;
+    padding: 18px 14px;
     border-bottom: 1px solid #e8eef8;
     text-align: left;
     vertical-align: middle;
@@ -1579,7 +1622,7 @@ img {
 
 .manage-packages-table td:nth-child(5) {
     font-variant-numeric: tabular-nums;
-    min-width: 120px;
+    min-width: 132px;
 }
 
 .manage-packages-table tbody tr:last-child td {
