@@ -54,11 +54,18 @@ class TravelPackage(models.Model):
 
         image_name = Path(self.image.name).name if self.image else ""
         if image_name:
-            static_image_path = (
-                settings.BASE_DIR / "accounts" / "static" / "images" / "packages" / image_name
-            )
-            if static_image_path.exists():
-                return static(f"images/packages/{image_name}")
+            static_dir = settings.BASE_DIR / "accounts" / "static" / "images" / "packages"
+            candidate_names = [image_name]
+
+            stem = Path(image_name).stem
+            suffix = Path(image_name).suffix
+            if "_" in stem:
+                candidate_names.append(f"{stem.rsplit('_', 1)[0]}{suffix}")
+
+            for candidate_name in candidate_names:
+                static_image_path = static_dir / candidate_name
+                if static_image_path.exists():
+                    return static(f"images/packages/{candidate_name}")
 
             return self.image.url
 
