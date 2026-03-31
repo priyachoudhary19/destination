@@ -43,8 +43,40 @@ class TravelPackage(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        old_image_name = None
+        if self.pk:
+            old_image_name = (
+                TravelPackage.objects.filter(pk=self.pk)
+                .values_list("image", flat=True)
+                .first()
+            )
+
+        super().save(*args, **kwargs)
+
+        if old_image_name and self.image and old_image_name != self.image.name:
+            storage = self.image.storage
+            if storage.exists(old_image_name):
+                storage.delete(old_image_name)
+
+    def delete(self, *args, **kwargs):
+        image_storage = self.image.storage if self.image else None
+        image_name = self.image.name if self.image else ""
+        super().delete(*args, **kwargs)
+        if image_storage and image_name and image_storage.exists(image_name):
+            image_storage.delete(image_name)
+
 
 class TravelBooking(models.Model):
+    APPROVAL_STATUS_PENDING = "pending"
+    APPROVAL_STATUS_APPROVED = "approved"
+    APPROVAL_STATUS_REJECTED = "rejected"
+    APPROVAL_STATUS_CHOICES = [
+        (APPROVAL_STATUS_PENDING, "Pending Review"),
+        (APPROVAL_STATUS_APPROVED, "Approved"),
+        (APPROVAL_STATUS_REJECTED, "Rejected"),
+    ]
+
     PAYMENT_STATUS_PENDING = "pending"
     PAYMENT_STATUS_ADVANCE = "advance_paid"
     PAYMENT_STATUS_COMPLETED = "completed"
@@ -83,6 +115,15 @@ class TravelBooking(models.Model):
         choices=PAYMENT_STATUS_CHOICES,
         default=PAYMENT_STATUS_PENDING,
     )
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_STATUS_CHOICES,
+        default=APPROVAL_STATUS_PENDING,
+    )
+    bus_seats_confirmed = models.BooleanField(default=False)
+    train_tickets_confirmed = models.BooleanField(default=False)
+    admin_notes = models.TextField(blank=True)
+    admin_reviewed_at = models.DateTimeField(blank=True, null=True)
     payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     currency = models.CharField(max_length=3, default="INR")
     razorpay_order_id = models.CharField(max_length=100, blank=True)

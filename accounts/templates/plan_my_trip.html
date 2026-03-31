@@ -3,16 +3,112 @@
 {% block content %}
 
 <section class="plan-trip-page">
-    <div class="manage-card plan-trip-card mx-auto" style="max-width: 860px;">
-        <p class="hero-kicker mb-2">PERSONALIZED PLANNING</p>
-        <h3>Plan My Trip</h3>
-        <p class="text-muted">A more advanced planner is coming soon. For now, explore curated packages or contact the team to create a custom route.</p>
-        <div class="hero-ribbon">
-            <span><i class="fa-solid fa-map-location-dot"></i> Custom routes</span>
-            <span><i class="fa-solid fa-bed"></i> Stay preferences</span>
-            <span><i class="fa-solid fa-bus"></i> Travel support</span>
+    <div class="plan-trip-filter-card mb-4">
+        <div class="mb-4">
+            <p class="hero-kicker mb-2">PERSONALIZED PLANNING</p>
+            <h2>Plan My Trip</h2>
+            <p class="text-muted mb-0">
+                Choose your filters and apply them to see the related travel packages.
+            </p>
         </div>
+
+        <form method="get" class="plan-trip-filter-grid">
+            <div>
+                <label for="search" class="form-label">Destination or Package</label>
+                <input
+                    type="text"
+                    id="search"
+                    name="search"
+                    class="form-control"
+                    value="{{ selected_search }}"
+                    placeholder="Search Goa, Manali, Rajasthan..."
+                >
+            </div>
+
+            <div>
+                <label for="trip_type" class="form-label">Trip Type</label>
+                <select id="trip_type" name="trip_type" class="form-control">
+                    <option value="">All trip types</option>
+                    {% for type in trip_types %}
+                    <option value="{{ type }}" {% if selected_trip_type == type %}selected{% endif %}>{{ type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="max_budget" class="form-label">Maximum Budget</label>
+                <select id="max_budget" name="max_budget" class="form-control">
+                    <option value="">Any budget</option>
+                    {% for option in budget_options %}
+                    <option value="{{ option.value }}" {% if selected_max_budget == option.value %}selected{% endif %}>Up to {{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="max_duration" class="form-label">Maximum Duration (Days)</label>
+                <select id="max_duration" name="max_duration" class="form-control">
+                    <option value="">Any duration</option>
+                    {% for duration in duration_options %}
+                    <option value="{{ duration }}" {% if selected_max_duration == duration|stringformat:"s" %}selected{% endif %}>Up to {{ duration }} day{{ duration|pluralize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="plan-trip-filter-actions">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="{% url 'plan_my_trip' %}" class="btn btn-outline-primary">Reset</a>
+            </div>
+        </form>
     </div>
+
+    {% if has_active_filters %}
+    <div class="row g-4">
+        {% for package in packages %}
+        <div class="col-md-6 col-lg-4">
+            <div class="package-card package-card-lux h-100">
+                {% if package.image %}
+                <img src="{{ package.image.url }}" class="package-img" alt="{{ package.title }}">
+                {% elif package.image_url %}
+                <img src="{{ package.image_url }}" class="package-img" alt="{{ package.title }}">
+                {% else %}
+                <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80" class="package-img" alt="Travel destination">
+                {% endif %}
+
+                <div class="package-body">
+                    <h5>{{ package.title }}</h5>
+                    <p class="package-meta"><i class="fa-regular fa-clock"></i> {{ package.duration }} Days / {{ package.duration|add:"-1" }} Nights</p>
+                    <p class="package-price">Rs {{ package.price }}</p>
+                    <div class="package-detail-points mb-3">
+                        <p class="mb-0"><strong>Trip Type:</strong> {{ package.trip_type|default:"Balanced itinerary for comfort and exploration." }}</p>
+                        {% if package.short_description %}
+                        <p class="mb-0"><strong>Highlights:</strong> {{ package.short_description }}</p>
+                        {% endif %}
+                    </div>
+                    {% if package.id in booked_package_ids %}
+                    <a href="{% url 'package_detail' package.id %}" class="btn btn-success w-100">View Booking & Payment</a>
+                    {% else %}
+                    <a href="{% url 'package_detail' package.id %}" class="btn btn-primary w-100">Read More & Book</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <div class="empty-block">
+                <h5>No packages matched your filters</h5>
+                <p class="mb-3">Try changing the budget, duration, destination, or trip type to see more options.</p>
+                <a href="{% url 'plan_my_trip' %}" class="btn btn-outline-primary">Clear Filters</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-block text-center">
+        <h5>Apply filters to view packages</h5>
+        <p class="mb-0">Select a destination, trip type, budget, or duration to see matching trips.</p>
+    </div>
+    {% endif %}
 </section>
 
 {% endblock %}

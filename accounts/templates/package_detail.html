@@ -26,11 +26,15 @@
                     </div>
                     <div class="detail-highlight-pill detail-highlight-pill-gold">
                         <span>Trip Type</span>
-                        <strong>{{ package.trip_type|default:"Comfort + sightseeing" }}</strong>
+                        <div class="detail-highlight-trip-type-list">
+                            {% for segment in trip_type_segments %}
+                            <strong class="detail-highlight-trip-chip">{{ segment }}</strong>
+                            {% endfor %}
+                        </div>
                     </div>
                     <div class="detail-highlight-pill detail-highlight-pill-teal">
                         <span>Starting Price</span>
-                        <strong>Rs {{ package.price }}</strong>
+                        <strong class="detail-highlight-price">Rs {{ package.price }}</strong>
                     </div>
                 </div>
             </div>

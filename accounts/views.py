@@ -18,7 +18,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from .forms import TravelBookingForm, TravelPackageForm
+from .forms import BookingApprovalForm, TravelBookingForm, TravelPackageForm
 from .models import TravelBooking, TravelPackage, registration
 
 
@@ -203,7 +203,74 @@ def home(request):
 
 
 def plan_my_trip(request):
-    return render(request, "plan_my_trip.html")
+    active_packages_qs = TravelPackage.objects.filter(is_active=True)
+    packages_qs = active_packages_qs
+
+    search = request.GET.get("search", "").strip()
+    trip_type = request.GET.get("trip_type", "").strip()
+    max_budget = request.GET.get("max_budget", "").strip()
+    max_duration = request.GET.get("max_duration", "").strip()
+
+    active_filters = [value for value in [search, trip_type, max_budget, max_duration] if value]
+    has_active_filters = bool(active_filters)
+
+    if has_active_filters:
+        if search:
+            packages_qs = packages_qs.filter(title__icontains=search)
+
+        if trip_type:
+            packages_qs = packages_qs.filter(trip_type__iexact=trip_type)
+
+        if max_budget.isdigit():
+            packages_qs = packages_qs.filter(price__lte=max_budget)
+
+        if max_duration.isdigit():
+            packages_qs = packages_qs.filter(duration__lte=max_duration)
+    else:
+        packages_qs = TravelPackage.objects.none()
+
+    booked_package_ids = set()
+    if request.user.is_authenticated:
+        booked_package_ids = set(
+            TravelBooking.objects.filter(user=request.user).values_list("package_id", flat=True)
+        )
+
+    trip_types = [
+        item
+        for item in active_packages_qs
+        .exclude(trip_type="")
+        .values_list("trip_type", flat=True)
+        .distinct()
+        .order_by("trip_type")
+    ]
+    budget_options = [
+        {
+            "value": str(int(price)),
+            "label": f"Rs {int(price):,}",
+        }
+        for price in active_packages_qs.values_list("price", flat=True).distinct().order_by("price")
+    ]
+    duration_options = list(
+        active_packages_qs.values_list("duration", flat=True).distinct().order_by("duration")
+    )
+
+    return render(
+        request,
+        "plan_my_trip.html",
+        {
+            "packages": packages_qs,
+            "booked_package_ids": booked_package_ids,
+            "trip_types": trip_types,
+            "budget_options": budget_options,
+            "duration_options": duration_options,
+            "selected_search": search,
+            "selected_trip_type": trip_type,
+            "selected_max_budget": max_budget,
+            "selected_max_duration": max_duration,
+            "active_filter_count": len(active_filters),
+            "has_active_filters": has_active_filters,
+        },
+    )
 
 
 @login_required(login_url="/admin-portal/login/")
@@ -241,6 +308,10 @@ def package_detail(request, package_id):
     booking = None
     booking_form = None
     payment_context = None
+    normalized_trip_type = package.trip_type.replace("\r", "/").replace("\n", "/")
+    trip_type_segments = [
+        segment.strip() for segment in normalized_trip_type.split("/") if segment.strip()
+    ] or ["Comfort + sightseeing"]
 
     if request.user.is_authenticated:
         booking = TravelBooking.objects.filter(user=request.user, package=package).first()
@@ -275,6 +346,7 @@ def package_detail(request, package_id):
             "booking": booking,
             "booking_form": booking_form,
             "payment_context": payment_context,
+            "trip_type_segments": trip_type_segments,
             "razorpay_ready": razorpay_configured(),
             "is_preview": not request.user.is_authenticated,
         },
@@ -383,6 +455,42 @@ def manage_bookings(request):
     if not request.user.is_staff:
         return redirect("admin_login")
 
+    return render(request, "admin_bookings.html", {"bookings": _booking_rows_with_forms()})
+
+
+@login_required(login_url="/admin-portal/login/")
+def update_booking_approval(request, booking_id):
+    if not request.user.is_staff:
+        return redirect("admin_login")
+
+    if request.method != "POST":
+        return redirect("manage_bookings")
+
+    booking = get_object_or_404(TravelBooking, id=booking_id)
+    action = request.POST.get("action")
+    form = BookingApprovalForm(request.POST, instance=booking, prefix=f"booking-{booking.id}")
+
+    if not form.is_valid():
+        messages.error(request, "Please correct the booking review details and try again.")
+        return render(request, "admin_bookings.html", {"bookings": _booking_rows_with_forms()})
+
+    booking = form.save(commit=False)
+    booking.admin_reviewed_at = timezone.now()
+    if action == "approve":
+        booking.approval_status = TravelBooking.APPROVAL_STATUS_APPROVED
+        messages.success(request, f"Booking for {booking.package.title} approved.")
+    elif action == "reject":
+        booking.approval_status = TravelBooking.APPROVAL_STATUS_REJECTED
+        messages.success(request, f"Booking for {booking.package.title} rejected.")
+    else:
+        messages.error(request, "Unknown booking action.")
+        return redirect("manage_bookings")
+
+    booking.save()
+    return redirect("manage_bookings")
+
+
+def _booking_rows_with_forms():
     bookings = TravelBooking.objects.select_related("user", "package").all()
     booking_users = [booking.user for booking in bookings]
     registration_map = {
@@ -401,8 +509,9 @@ def manage_bookings(request):
             or booking.user.username
         )
         booking.display_amount = booking.payment_amount or booking.total_price()
+        booking.approval_form = BookingApprovalForm(instance=booking, prefix=f"booking-{booking.id}")
 
-    return render(request, "admin_bookings.html", {"bookings": bookings})
+    return bookings
 
 
 @login_required(login_url="/admin-portal/login/")

@@ -196,8 +196,9 @@ STORAGES = {
 }
 
 # Media files (uploaded package images)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT', str(BASE_DIR / 'media')))
+PACKAGE_IMAGE_MAX_UPLOAD_MB = int(os.environ.get('PACKAGE_IMAGE_MAX_UPLOAD_MB', '5'))
 
 LOGIN_URL = 'login/'
 

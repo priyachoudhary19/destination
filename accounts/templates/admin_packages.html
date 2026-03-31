@@ -3,8 +3,8 @@
 {% block content %}
 
 <section class="manage-packages-page">
-    <div class="row g-4">
-        <div class="col-lg-5">
+    <div class="manage-packages-grid">
+        <div class="manage-packages-form-col">
             <div class="manage-card">
                 <h3>Add New Package</h3>
                 <p class="text-muted">Upload image directly from your system.</p>
@@ -28,6 +28,10 @@
                     <div class="mb-3">
                         <label class="form-label">Package Image</label>
                         {{ form.image }}
+                        {% if form.image.help_text %}
+                        <div class="form-text">{{ form.image.help_text }}</div>
+                        {% endif %}
+                        {{ form.image.errors }}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Short Description</label>
@@ -68,11 +72,17 @@
             </div>
         </div>
 
-        <div class="col-lg-7">
-            <div class="manage-card">
-                <h3>Existing Packages</h3>
-                <div class="table-responsive">
-                    <table class="table align-middle manage-table">
+        <div class="manage-packages-table-col">
+            <div class="manage-card manage-packages-list-card">
+                <div class="manage-packages-header">
+                    <div>
+                        <h3>Existing Packages</h3>
+                        <p class="text-muted mb-0">Review, update and remove packages easily.</p>
+                    </div>
+                </div>
+
+                <div class="manage-packages-table-wrap">
+                    <table class="table align-middle manage-table manage-packages-table">
                         <thead>
                             <tr>
                                 <th>#</th>
@@ -87,19 +97,25 @@
                         <tbody>
                             {% for item in package_list %}
                             <tr>
-                                <td>{{ item.id }}</td>
+                                <td>{{ forloop.counter }}</td>
                                 <td>
                                     {% if item.image %}
-                                    <img src="{{ item.image.url }}" alt="{{ item.title }}" class="manage-thumb">
+                                    <img src="{{ item.image.url }}" alt="{{ item.title }}" class="manage-thumb package-table-thumb">
                                     {% elif item.image_url %}
-                                    <img src="{{ item.image_url }}" alt="{{ item.title }}" class="manage-thumb">
+                                    <img src="{{ item.image_url }}" alt="{{ item.title }}" class="manage-thumb package-table-thumb">
                                     {% else %}
-                                    <span class="text-muted">No image</span>
+                                    <div class="package-table-thumb package-table-thumb-placeholder">No image</div>
                                     {% endif %}
                                 </td>
-                                <td>{{ item.title }}</td>
+                                <td>
+                                    <div class="package-table-title-cell">
+                                        <strong class="package-table-title">{{ item.title }}</strong>
+                                    </div>
+                                </td>
                                 <td>{{ item.duration }}</td>
-                                <td>Rs {{ item.price }}</td>
+                                <td>
+                                    <span class="package-price-value">Rs {{ item.price|floatformat:0 }}</span>
+                                </td>
                                 <td>
                                     {% if item.is_active %}
                                     <span class="badge text-bg-success">Active</span>
@@ -108,7 +124,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="action-row">
+                                    <div class="action-row manage-packages-actions">
                                         <a href="{% url 'edit_package' item.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form method="POST" action="{% url 'delete_package' item.id %}" onsubmit="return confirm('Delete this package?');">
                                             {% csrf_token %}

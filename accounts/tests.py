@@ -2,18 +2,26 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import TravelBooking, TravelPackage
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class PackageBookingFlowTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username="traveler@example.com",
             email="traveler@example.com",
             password="pass12345",
+        )
+        self.admin_user = User.objects.create_user(
+            username="admin@example.com",
+            email="admin@example.com",
+            password="adminpass123",
+            is_staff=True,
         )
         self.package = TravelPackage.objects.create(
             title="Goa Escape",
@@ -25,6 +33,13 @@ class PackageBookingFlowTests(TestCase):
             inclusions="Hotel, breakfast, transfers",
             trip_type="Leisure trip",
             payment_details="Pay 30% advance by UPI to confirm the slot.",
+        )
+        self.package_two = TravelPackage.objects.create(
+            title="Manali Adventure",
+            duration=8,
+            price="42000.00",
+            short_description="Mountain break",
+            trip_type="Adventure",
         )
 
     def test_package_detail_preview_requires_login_for_full_trip_details(self):
@@ -101,3 +116,94 @@ class PackageBookingFlowTests(TestCase):
         self.assertFalse(
             TravelBooking.objects.filter(user=self.user, package=self.package).exists()
         )
+
+    def test_admin_can_approve_booking_after_confirming_transport(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=10),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.post(
+            reverse("update_booking_approval", args=[booking.id]),
+            {
+                "booking-{}".format(booking.id) + "-admin_notes": "Seats and tickets confirmed by vendor.",
+                "action": "approve",
+            },
+        )
+
+        self.assertRedirects(response, reverse("manage_bookings"))
+        booking.refresh_from_db()
+        self.assertEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_APPROVED)
+        self.assertEqual(booking.admin_notes, "Seats and tickets confirmed by vendor.")
+        self.assertIsNotNone(booking.admin_reviewed_at)
+
+    def test_admin_can_reject_booking_with_notes(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=1,
+            travel_date=timezone.localdate() + timedelta(days=7),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="25000.00",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.post(
+            reverse("update_booking_approval", args=[booking.id]),
+            {
+                "booking-{}".format(booking.id) + "-admin_notes": "Train tickets are sold out for this date.",
+                "action": "reject",
+            },
+        )
+
+        self.assertRedirects(response, reverse("manage_bookings"))
+        booking.refresh_from_db()
+        self.assertEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_REJECTED)
+        self.assertEqual(booking.admin_notes, "Train tickets are sold out for this date.")
+        self.assertIsNotNone(booking.admin_reviewed_at)
+
+    def test_plan_my_trip_filters_by_trip_type_and_budget(self):
+        response = self.client.get(
+            reverse("plan_my_trip"),
+            {
+                "trip_type": "Leisure trip",
+                "max_budget": "30000",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Goa Escape")
+        self.assertNotContains(response, "Manali Adventure")
+
+    def test_plan_my_trip_filters_by_search(self):
+        response = self.client.get(reverse("plan_my_trip"), {"search": "Manali"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Manali Adventure")
+        self.assertNotContains(response, "Goa Escape")
+
+    def test_plan_my_trip_shows_only_filters_before_search(self):
+        response = self.client.get(reverse("plan_my_trip"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Apply filters to view packages")
+        self.assertNotContains(response, "Goa Escape")
+        self.assertNotContains(response, "Manali Adventure")
+
+    def test_plan_my_trip_shows_meaningful_budget_and_duration_options(self):
+        response = self.client.get(reverse("plan_my_trip"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Up to Rs 25,000")
+        self.assertContains(response, "Up to Rs 42,000")
+        self.assertContains(response, "Up to 5 days")
+        self.assertContains(response, "Up to 8 days")

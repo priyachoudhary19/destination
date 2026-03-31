@@ -1,10 +1,32 @@
 from django import forms
+from django.conf import settings
 from django.utils import timezone
 
 from .models import TravelBooking, TravelPackage
 
 
 class TravelPackageForm(forms.ModelForm):
+    ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        if not image:
+            return image
+
+        filename = image.name.lower()
+        if not any(filename.endswith(extension) for extension in self.ALLOWED_IMAGE_EXTENSIONS):
+            raise forms.ValidationError(
+                "Please upload a JPG, JPEG, PNG, or WEBP image."
+            )
+
+        max_size_mb = getattr(settings, "PACKAGE_IMAGE_MAX_UPLOAD_MB", 5)
+        if image.size > max_size_mb * 1024 * 1024:
+            raise forms.ValidationError(
+                f"Image size must be {max_size_mb} MB or smaller."
+            )
+
+        return image
+
     class Meta:
         model = TravelPackage
         fields = [
@@ -33,6 +55,13 @@ class TravelPackageForm(forms.ModelForm):
             "inclusions": forms.Textarea(attrs={"rows": 3}),
             "payment_details": forms.Textarea(attrs={"rows": 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["image"].help_text = (
+            "Upload a JPG, PNG, or WEBP image. Max size "
+            f"{getattr(settings, 'PACKAGE_IMAGE_MAX_UPLOAD_MB', 5)} MB."
+        )
 
 
 class TravelBookingForm(forms.ModelForm):
@@ -70,5 +99,23 @@ class TravelBookingForm(forms.ModelForm):
             ),
             "payment_method": forms.Select(
                 attrs={}
+            ),
+        }
+
+
+class BookingApprovalForm(forms.ModelForm):
+    class Meta:
+        model = TravelBooking
+        fields = [
+            "bus_seats_confirmed",
+            "train_tickets_confirmed",
+            "admin_notes",
+        ]
+        widgets = {
+            "admin_notes": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": "Add seat or ticket availability notes for this booking",
+                }
             ),
         }
