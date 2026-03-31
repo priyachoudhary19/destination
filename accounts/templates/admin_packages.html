@@ -7,9 +7,7 @@
         <div class="manage-packages-form-col">
             <div class="manage-card">
                 <h3>Add New Package</h3>
-                <p class="text-muted">Upload image directly from your system.</p>
-
-                <form method="POST" class="manage-form" enctype="multipart/form-data">
+                <form method="POST" class="manage-form">
                     {% csrf_token %}
                     {{ form.non_field_errors }}
 
@@ -26,12 +24,12 @@
                         {{ form.price }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Package Image</label>
-                        {{ form.image }}
-                        {% if form.image.help_text %}
-                        <div class="form-text">{{ form.image.help_text }}</div>
+                        <label class="form-label">Image URL</label>
+                        {{ form.image_url }}
+                        {% if form.image_url.help_text %}
+                        <div class="form-text">{{ form.image_url.help_text }}</div>
                         {% endif %}
-                        {{ form.image.errors }}
+                        {{ form.image_url.errors }}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Short Description</label>
@@ -40,7 +38,6 @@
                     <div class="mb-3">
                         <label class="form-label">Full Itinerary</label>
                         {{ form.detailed_itinerary }}
-                        <div class="form-text">Add the day-wise plan here. These details will be visible to users after login.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Places Included</label>
@@ -97,7 +94,7 @@
                         <tbody>
                             {% for item in package_list %}
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td class="package-serial-cell">{{ forloop.counter }}</td>
                                 <td>
                                     <img src="{{ item.display_image_url }}" alt="{{ item.title }}" class="manage-thumb package-table-thumb">
                                 </td>
@@ -110,14 +107,14 @@
                                 <td>
                                     <span class="package-price-value">Rs {{ item.price|floatformat:0 }}</span>
                                 </td>
-                                <td>
+                                <td class="package-status-cell">
                                     {% if item.is_active %}
                                     <span class="package-status-chip package-status-chip-active">Active</span>
                                     {% else %}
                                     <span class="package-status-chip package-status-chip-inactive">Inactive</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                                <td class="package-action-cell">
                                     <div class="action-row manage-packages-actions">
                                         <a href="{% url 'edit_package' item.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
                                         <form method="POST" action="{% url 'delete_package' item.id %}" onsubmit="return confirm('Delete this package?');">

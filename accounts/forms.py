@@ -1,39 +1,17 @@
 from django import forms
-from django.conf import settings
 from django.utils import timezone
 
 from .models import TravelBooking, TravelPackage
 
 
 class TravelPackageForm(forms.ModelForm):
-    ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-
-    def clean_image(self):
-        image = self.cleaned_data.get("image")
-        if not image:
-            return image
-
-        filename = image.name.lower()
-        if not any(filename.endswith(extension) for extension in self.ALLOWED_IMAGE_EXTENSIONS):
-            raise forms.ValidationError(
-                "Please upload a JPG, JPEG, PNG, or WEBP image."
-            )
-
-        max_size_mb = getattr(settings, "PACKAGE_IMAGE_MAX_UPLOAD_MB", 5)
-        if image.size > max_size_mb * 1024 * 1024:
-            raise forms.ValidationError(
-                f"Image size must be {max_size_mb} MB or smaller."
-            )
-
-        return image
-
     class Meta:
         model = TravelPackage
         fields = [
             "title",
             "duration",
             "price",
-            "image",
+            "image_url",
             "short_description",
             "detailed_itinerary",
             "places_included",
@@ -58,9 +36,11 @@ class TravelPackageForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["image"].help_text = (
-            "Upload a JPG, PNG, or WEBP image. Max size "
-            f"{getattr(settings, 'PACKAGE_IMAGE_MAX_UPLOAD_MB', 5)} MB."
+        self.fields["image_url"].widget.attrs["placeholder"] = (
+            "https://example.com/package-image.jpg"
+        )
+        self.fields["image_url"].help_text = (
+           
         )
 
 

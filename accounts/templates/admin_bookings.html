@@ -8,7 +8,17 @@
         <h3>Manage Bookings</h3>
 
         <div class="table-responsive">
-            <table class="table align-middle manage-table">
+            <table class="table align-middle manage-table admin-bookings-table">
+                <colgroup>
+                    <col class="booking-col-user">
+                    <col class="booking-col-package">
+                    <col class="booking-col-approval">
+                    <col class="booking-col-travel-date">
+                    <col class="booking-col-travelers">
+                    <col class="booking-col-contact">
+                    <col class="booking-col-booked-on">
+                    <col class="booking-col-actions">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>User</th>
@@ -24,29 +34,29 @@
                 <tbody>
                     {% for booking in bookings %}
                     <tr>
-                        <td>
-                            <strong>{{ booking.user.username }}</strong>
+                        <td class="booking-user-cell">
+                            <strong class="booking-user-email">{{ booking.user.username }}</strong>
                         </td>
-                        <td>
-                            <strong>{{ booking.package.title }}</strong>
+                        <td class="booking-package-cell">
+                            <strong class="booking-package-title">{{ booking.package.title }}</strong>
                             {% if booking.special_requests %}
                             <div class="table-subtext">{{ booking.special_requests }}</div>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="booking-status-cell">
                             {% if booking.approval_status == "approved" %}
-                            <strong>Approved</strong>
+                            <strong class="booking-status-pill booking-status-approved">Approved</strong>
                             {% elif booking.approval_status == "rejected" %}
-                            <strong>Rejected</strong>
+                            <strong class="booking-status-pill booking-status-rejected">Rejected</strong>
                             {% else %}
-                            <strong>Pending Review</strong>
+                            <strong class="booking-status-pill booking-status-pending">Pending Review</strong>
                             {% endif %}
                         </td>
-                        <td>{{ booking.travel_date|default:"Not selected" }}</td>
-                        <td>{{ booking.traveler_count }}</td>
-                        <td>{{ booking.contact_number|default:"-" }}</td>
-                        <td>{{ booking.booked_at|localtime|date:"d M Y, h:i A" }}</td>
-                        <td>
+                        <td class="booking-date-cell">{{ booking.travel_date|default:"Not selected" }}</td>
+                        <td><span class="booking-count-badge">{{ booking.traveler_count }}</span></td>
+                        <td class="booking-contact-cell">{{ booking.contact_number|default:"-" }}</td>
+                        <td class="booking-booked-cell">{{ booking.booked_at|localtime|date:"d M Y, h:i A" }}</td>
+                        <td class="booking-action-cell">
                             <form method="post" action="{% url 'update_booking_approval' booking.id %}" class="booking-action-form">
                                 {% csrf_token %}
                                 <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">

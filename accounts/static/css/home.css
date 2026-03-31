@@ -934,6 +934,23 @@ img {
     padding: 18px;
 }
 
+.admin-bookings-page {
+    width: min(100%, 1680px);
+    margin: 0 auto;
+    padding-inline: clamp(20px, 3vw, 44px);
+}
+
+.admin-bookings-page .manage-card {
+    padding: 24px 22px;
+}
+
+.admin-bookings-page .table-responsive {
+    overflow-x: visible;
+    padding-bottom: 0;
+    margin-inline: -22px;
+    width: calc(100% + 44px);
+}
+
 .payment-step-list {
     display: grid;
     gap: 12px;
@@ -1382,21 +1399,26 @@ img {
 /* -------------------------------------------------------------------------- */
 .manage-packages-page {
     overflow-x: clip;
-    width: min(100%, 1520px);
+    width: 100%;
+    max-width: 1640px;
     margin: 0 auto;
-    padding-inline: clamp(16px, 2.4vw, 32px);
+    padding-inline: clamp(18px, 2.4vw, 32px);
 }
 
 .manage-packages-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.9fr) minmax(720px, 1.5fr);
-    gap: 32px;
+    grid-template-columns: 1fr;
+    gap: 28px;
     align-items: start;
 }
 
 .manage-packages-form-col,
 .manage-packages-table-col {
     min-width: 0;
+}
+
+.manage-packages-form-col {
+    max-width: 860px;
 }
 
 .manage-packages-page .manage-card {
@@ -1436,16 +1458,17 @@ img {
 }
 
 .manage-packages-table-wrap {
-    overflow-x: auto;
+    overflow-x: visible;
     border: 1px solid #e6edf8;
     border-radius: 18px;
     background: #fff;
 }
 
 .manage-packages-table {
-    table-layout: auto;
+    width: 100%;
+    table-layout: fixed;
     margin-bottom: 0;
-    min-width: 920px;
+    min-width: 0;
 }
 
 .manage-packages-table th:nth-child(1) {
@@ -1453,27 +1476,30 @@ img {
 }
 
 .manage-packages-table th:nth-child(2) {
-    width: 12%;
+    width: 10%;
 }
 
 .manage-packages-table th:nth-child(3) {
-    width: 31%;
+    width: 30%;
 }
 
 .manage-packages-table th:nth-child(4),
-.manage-packages-table th:nth-child(5),
 .manage-packages-table th:nth-child(6) {
     width: 11%;
 }
 
+.manage-packages-table th:nth-child(5) {
+    width: 13%;
+}
+
 .manage-packages-table th:nth-child(7) {
-    width: 18%;
+    width: 19%;
 }
 
 .package-table-thumb {
-    width: 78px;
-    height: 54px;
-    border-radius: 14px;
+    width: 64px;
+    height: 46px;
+    border-radius: 12px;
     object-fit: cover;
     border: 1px solid rgba(186, 203, 231, 0.9);
     box-shadow: 0 10px 18px rgba(49, 84, 146, 0.12);
@@ -1497,19 +1523,21 @@ img {
     display: block;
     color: #17263f;
     line-height: 1.4;
-    min-width: 180px;
-    font-size: 1.02rem;
+    min-width: 0;
+    font-size: 0.98rem;
     font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .package-price-value {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     white-space: nowrap;
     font-weight: 700;
     color: #1f3558;
     font-variant-numeric: tabular-nums;
-    padding: 7px 12px;
+    padding: 6px 10px;
     border-radius: 999px;
     background: rgba(232, 241, 255, 0.95);
     border: 1px solid rgba(184, 204, 236, 0.95);
@@ -1527,10 +1555,10 @@ img {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 88px;
-    padding: 7px 12px;
+    min-width: 92px;
+    padding: 6px 10px;
     border-radius: 999px;
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     font-weight: 800;
     letter-spacing: 0.01em;
 }
@@ -1550,14 +1578,15 @@ img {
 .manage-packages-actions {
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
 }
 
 .manage-packages-actions .btn {
-    min-width: 86px;
+    min-width: 82px;
     border-radius: 12px;
-    padding: 7px 12px;
-    font-size: 0.9rem;
+    padding: 6px 10px;
+    font-size: 0.84rem;
     font-weight: 700;
 }
 
@@ -1572,7 +1601,7 @@ img {
 }
 
 .manage-packages-table.manage-table {
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 .manage-table th,
@@ -1581,8 +1610,8 @@ img {
     border-bottom: 1px solid #e8eef8;
     text-align: left;
     vertical-align: middle;
-    word-break: normal;
-    overflow-wrap: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .manage-table th {
@@ -1609,20 +1638,47 @@ img {
     font-weight: 700;
 }
 
+.package-serial-cell {
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+    font-variant-numeric: tabular-nums;
+}
+
 .manage-packages-table tbody td:last-child {
     padding-right: 14px;
 }
 
+.manage-packages-table th:nth-child(4),
+.manage-packages-table th:nth-child(5),
+.manage-packages-table th:nth-child(6),
+.manage-packages-table th:nth-child(7),
 .manage-packages-table td:nth-child(4),
 .manage-packages-table td:nth-child(5),
+.manage-packages-table td:nth-child(6),
+.manage-packages-table td:nth-child(7) {
+    text-align: center;
+}
+
+.manage-packages-table td:nth-child(4),
+.manage-packages-table td:nth-child(5) {
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+    white-space: nowrap;
+}
+
 .manage-packages-table td:nth-child(6),
 .manage-packages-table td:nth-child(7) {
     white-space: nowrap;
 }
 
-.manage-packages-table td:nth-child(5) {
-    font-variant-numeric: tabular-nums;
-    min-width: 132px;
+.package-status-cell {
+    text-align: center;
+}
+
+.package-action-cell {
+    padding-left: 18px;
+    text-align: center;
 }
 
 .manage-packages-table tbody tr:last-child td {
@@ -1807,6 +1863,89 @@ img {
 
 .booking-action-form .btn {
     width: 100%;
+}
+
+.admin-bookings-table {
+    width: 100%;
+    table-layout: fixed;
+    min-width: 0;
+}
+
+.booking-col-user {
+    width: 13%;
+}
+
+.booking-col-package {
+    width: 15%;
+}
+
+.booking-col-approval {
+    width: 13%;
+}
+
+.booking-col-travel-date {
+    width: 12%;
+}
+
+.booking-col-travelers {
+    width: 8%;
+}
+
+.booking-col-contact {
+    width: 12%;
+}
+
+.booking-col-booked-on {
+    width: 13%;
+}
+
+.booking-col-actions {
+    width: 14%;
+}
+
+.admin-bookings-table th,
+.admin-bookings-table td {
+    padding: 18px 14px;
+}
+
+.booking-user-email,
+.booking-package-title {
+    display: block;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.booking-user-cell,
+.booking-package-cell {
+    min-width: 0;
+}
+
+.booking-user-email {
+    word-break: break-all;
+    line-height: 1.45;
+}
+
+.booking-package-title {
+    line-height: 1.4;
+    font-size: 1.02rem;
+}
+
+.booking-status-cell,
+.booking-date-cell,
+.booking-contact-cell,
+.booking-booked-cell {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.booking-date-cell,
+.booking-booked-cell {
+    line-height: 1.45;
+}
+
+.booking-contact-cell {
+    font-variant-numeric: tabular-nums;
 }
 
 /* -------------------------------------------------------------------------- */
