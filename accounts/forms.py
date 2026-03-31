@@ -34,6 +34,7 @@ class TravelPackageForm(forms.ModelForm):
             "duration",
             "price",
             "image",
+            "image_url",
             "short_description",
             "detailed_itinerary",
             "places_included",
@@ -61,6 +62,12 @@ class TravelPackageForm(forms.ModelForm):
         self.fields["image"].help_text = (
             "Upload a JPG, PNG, or WEBP image. Max size "
             f"{getattr(settings, 'PACKAGE_IMAGE_MAX_UPLOAD_MB', 5)} MB."
+        )
+        self.fields["image_url"].widget.attrs["placeholder"] = (
+            "https://example.com/package-image.jpg"
+        )
+        self.fields["image_url"].help_text = (
+            "Deploy ke baad stable image chahiye to yahan image link paste karo."
         )
 
 

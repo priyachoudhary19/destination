@@ -26,13 +26,7 @@
         {% for package in packages %}
         <div class="col-md-6 col-lg-4">
             <div class="package-card package-card-lux h-100">
-                {% if package.image %}
-                <img src="{{ package.image.url }}" class="package-img" alt="{{ package.title }}">
-                {% elif package.image_url %}
-                <img src="{{ package.image_url }}" class="package-img" alt="{{ package.title }}">
-                {% else %}
-                <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80" class="package-img" alt="Travel destination">
-                {% endif %}
+                <img src="{{ package.display_image_url }}" class="package-img" alt="{{ package.title }}">
 
                 <div class="package-body">
                     <h5>{{ package.title }}</h5>

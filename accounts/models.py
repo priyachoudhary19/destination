@@ -1,5 +1,9 @@
-from django.db import models
 from decimal import Decimal
+from pathlib import Path
+
+from django.conf import settings
+from django.db import models
+from django.templatetags.static import static
 
 
 class Author(models.Model):
@@ -42,6 +46,23 @@ class TravelPackage(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def display_image_url(self):
+        if self.image_url:
+            return self.image_url
+
+        image_name = Path(self.image.name).name if self.image else ""
+        if image_name:
+            static_image_path = (
+                settings.BASE_DIR / "accounts" / "static" / "images" / "packages" / image_name
+            )
+            if static_image_path.exists():
+                return static(f"images/packages/{image_name}")
+
+            return self.image.url
+
+        return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80"
 
     def save(self, *args, **kwargs):
         old_image_name = None
