@@ -14,7 +14,7 @@
                     <a href="{% url 'manage_packages' %}" class="btn btn-outline-secondary">Back</a>
                 </div>
 
-                <form method="POST" enctype="multipart/form-data" class="manage-form">
+                <form method="POST" class="manage-form">
                     {% csrf_token %}
                     {{ form.non_field_errors }}
 
@@ -32,15 +32,12 @@
                             {{ form.price }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Upload Image</label>
-                            {{ form.image }}
+                            <label class="form-label">Image URL</label>
+                            {{ form.image_url }}
                             {% if package.display_image_url %}
                             <div class="form-text">Current image: <a href="{{ package.display_image_url }}" target="_blank" rel="noopener">View current image</a></div>
                             {% endif %}
-                            {% if form.image.help_text %}
-                            <div class="form-text">{{ form.image.help_text }}</div>
-                            {% endif %}
-                            {{ form.image.errors }}
+                            {{ form.image_url.errors }}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Sort Order</label>
