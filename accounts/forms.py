@@ -43,6 +43,9 @@ class TravelPackageForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        if self.cleaned_data.get("image_url") and instance.image:
+            instance.image.delete(save=False)
+            instance.image = None
         if commit:
             instance.save()
             self.save_m2m()
