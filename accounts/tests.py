@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
@@ -58,6 +59,41 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Baga Beach, Fort Aguada, Dudhsagar")
         self.assertContains(response, "Day 1: Arrival in Goa")
         self.assertContains(response, "Pay 30% advance by UPI to confirm the slot.")
+
+    def test_admin_can_add_package_with_uploaded_image(self):
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        upload = SimpleUploadedFile(
+            "kerala-upload-test.jpg",
+            b"fake-image-content",
+            content_type="image/jpeg",
+        )
+
+        response = self.client.post(
+            reverse("manage_packages"),
+            {
+                "title": "Kerala Retreat",
+                "duration": 6,
+                "price": "31500.00",
+                "image": upload,
+                "image_url": "",
+                "short_description": "Backwater holiday",
+                "detailed_itinerary": "Day 1: Arrival",
+                "places_included": "Alleppey, Munnar",
+                "inclusions": "Hotel, breakfast",
+                "trip_type": "Relaxation",
+                "payment_details": "Advance required",
+                "is_active": "on",
+                "sort_order": 3,
+            },
+        )
+
+        self.assertRedirects(response, reverse("manage_packages"))
+        package = TravelPackage.objects.get(title="Kerala Retreat")
+        self.assertTrue(package.image.name.startswith("packages/"))
+        self.assertEqual(package.image_url, "")
+        self.assertIn("/media/packages/", package.display_image_url)
+        package.delete()
 
     def test_logged_in_user_can_create_booking_with_payment_method(self):
         self.client.login(username="traveler@example.com", password="pass12345")

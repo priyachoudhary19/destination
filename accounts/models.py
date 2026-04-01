@@ -49,9 +49,6 @@ class TravelPackage(models.Model):
 
     @property
     def display_image_url(self):
-        if self.image_url:
-            return self.image_url
-
         image_name = Path(self.image.name).name if self.image else ""
         if image_name:
             static_dir = settings.BASE_DIR / "accounts" / "static" / "images" / "packages"
@@ -68,6 +65,9 @@ class TravelPackage(models.Model):
                     return static(f"images/packages/{candidate_name}")
 
             return self.image.url
+
+        if self.image_url:
+            return self.image_url
 
         return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80"
 

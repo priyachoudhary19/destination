@@ -1,4 +1,6 @@
 from django import forms
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import TravelBooking, TravelPackage
@@ -11,7 +13,7 @@ class TravelPackageForm(forms.ModelForm):
             "title",
             "duration",
             "price",
-            "image_url",
+            "image",
             "short_description",
             "detailed_itinerary",
             "places_included",
@@ -22,6 +24,7 @@ class TravelPackageForm(forms.ModelForm):
             "sort_order",
         ]
         widgets = {
+            "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
             "short_description": forms.Textarea(attrs={"rows": 3}),
             "detailed_itinerary": forms.Textarea(
                 attrs={
@@ -36,12 +39,34 @@ class TravelPackageForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["image_url"].widget.attrs["placeholder"] = (
-            "https://example.com/package-image.jpg"
-        )
-        self.fields["image_url"].help_text = (
-           
-        )
+        self.fields["image"].required = False
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        if not image:
+            return image
+
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+        image_name = image.name.lower()
+        if not any(image_name.endswith(extension) for extension in allowed_extensions):
+            raise ValidationError("Upload JPG, PNG, WEBP, or GIF image.")
+
+        max_size = settings.PACKAGE_IMAGE_MAX_UPLOAD_MB * 1024 * 1024
+        if image.size > max_size:
+            raise ValidationError(
+                f"Image size should be under {settings.PACKAGE_IMAGE_MAX_UPLOAD_MB} MB."
+            )
+
+        return image
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.cleaned_data.get("image"):
+            instance.image_url = ""
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class TravelBookingForm(forms.ModelForm):
