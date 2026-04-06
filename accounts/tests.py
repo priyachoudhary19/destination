@@ -1,13 +1,12 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import TravelBooking, TravelPackage
+from .models import TravelBooking, TravelPackage, UserFeedback
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
@@ -60,14 +59,8 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Day 1: Arrival in Goa")
         self.assertContains(response, "Pay 30% advance by UPI to confirm the slot.")
 
-    def test_admin_can_add_package_with_uploaded_image(self):
+    def test_admin_can_add_package_with_image_url(self):
         self.client.login(username="admin@example.com", password="adminpass123")
-
-        upload = SimpleUploadedFile(
-            "kerala-upload-test.jpg",
-            b"fake-image-content",
-            content_type="image/jpeg",
-        )
 
         response = self.client.post(
             reverse("manage_packages"),
@@ -75,8 +68,7 @@ class PackageBookingFlowTests(TestCase):
                 "title": "Kerala Retreat",
                 "duration": 6,
                 "price": "31500.00",
-                "image": upload,
-                "image_url": "",
+                "image_url": "https://example.com/kerala.jpg",
                 "short_description": "Backwater holiday",
                 "detailed_itinerary": "Day 1: Arrival",
                 "places_included": "Alleppey, Munnar",
@@ -90,10 +82,8 @@ class PackageBookingFlowTests(TestCase):
 
         self.assertRedirects(response, reverse("manage_packages"))
         package = TravelPackage.objects.get(title="Kerala Retreat")
-        self.assertTrue(package.image.name.startswith("packages/"))
-        self.assertEqual(package.image_url, "")
-        self.assertIn("/media/packages/", package.display_image_url)
-        package.delete()
+        self.assertEqual(package.image_url, "https://example.com/kerala.jpg")
+        self.assertEqual(package.display_image_url, "https://example.com/kerala.jpg")
 
     def test_logged_in_user_can_create_booking_with_payment_method(self):
         self.client.login(username="traveler@example.com", password="pass12345")
@@ -243,3 +233,157 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Up to Rs 42,000")
         self.assertContains(response, "Up to 5 days")
         self.assertContains(response, "Up to 8 days")
+
+    def test_home_does_not_show_question_or_feedback_options(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Ask Questions")
+        self.assertNotContains(response, "Provide Feedback")
+
+    def test_feedback_submission_endpoint_saves_feedback(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("submit_feedback"),
+            {
+                "name": "Priya Sharma",
+                "email": "priya@example.com",
+                "contact_number": "9876543210",
+                "message": "Loved the itinerary and support quality.",
+                "rating": 9,
+                "discovery_source": "Google search",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], True)
+        feedback = UserFeedback.objects.latest("id")
+        self.assertEqual(feedback.satisfaction_score, 9)
+        self.assertEqual(feedback.discovery_source, "Google search")
+
+    def test_feedback_submission_requires_valid_fields(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("submit_feedback"),
+            {
+                "name": "",
+                "email": "invalid-email",
+                "contact_number": "abc",
+                "message": "",
+                "rating": 0,
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.json()
+        self.assertEqual(payload["ok"], False)
+        self.assertIn("email", payload["errors"])
+        self.assertIn("rating", payload["errors"])
+
+    def test_feedback_submission_requires_logged_in_user(self):
+        response = self.client.post(
+            reverse("submit_feedback"),
+            {
+                "name": "Guest",
+                "email": "guest@example.com",
+                "contact_number": "9876543210",
+                "message": "Nice trip.",
+                "rating": 4,
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["ok"], False)
+
+    def test_feedback_submission_redirects_on_regular_post(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("submit_feedback"),
+            {
+                "name": "Priya Sharma",
+                "email": "priya@example.com",
+                "contact_number": "9876543210",
+                "message": "Loved the itinerary and support quality.",
+                "rating": 8,
+                "discovery_source": "Social media",
+            },
+        )
+
+        self.assertRedirects(response, reverse("home"))
+
+    def test_home_hides_feedback_button_for_logged_out_visitors(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Rate your experience")
+
+    def test_home_does_not_show_feedback_button_for_logged_in_user(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Rate your experience")
+
+    def test_feedback_page_requires_login(self):
+        response = self.client.get(reverse("feedback_page"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_feedback_page_renders_for_logged_in_user(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("feedback_page"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Feedback Time!")
+        self.assertContains(response, "How satisfied were you when using the website?")
+        self.assertContains(response, "Send")
+
+    def test_admin_feedback_management_lists_entries(self):
+        from .models import UserFeedback
+
+        UserFeedback.objects.create(
+            name="Riya",
+            email="riya@example.com",
+            contact_number="9999999999",
+            message="Great planning support.",
+            rating=4,
+            satisfaction_score=8,
+            discovery_source="Google search",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_feedback"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Feedback Management")
+        self.assertContains(response, "riya@example.com")
+        self.assertContains(response, "8/10")
+        self.assertContains(response, "Google search")
+
+    def test_admin_can_delete_feedback_entry(self):
+        from .models import UserFeedback
+
+        feedback = UserFeedback.objects.create(
+            name="Riya",
+            email="riya@example.com",
+            contact_number="9999999999",
+            message="Great planning support.",
+            rating=4,
+            satisfaction_score=8,
+            discovery_source="Friends",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.post(reverse("delete_feedback", args=[feedback.id]))
+
+        self.assertRedirects(response, reverse("manage_feedback"))
+        self.assertFalse(UserFeedback.objects.filter(id=feedback.id).exists())

@@ -1,8 +1,10 @@
+{% load static %}
 <nav class="navbar navbar-expand-lg site-navbar">
   <div class="container">
     <a class="navbar-brand site-brand" href="{% url 'home' %}">
-      <span class="brand-mark"><i class="fa-solid fa-plane-departure"></i></span>
-      Dreamland
+      <span class="brand-mark">
+        <img src="{% static 'images/dream.jpg' %}" alt="Dream Trip Destinations logo" class="site-logo">
+      </span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -14,12 +16,16 @@
         {% if not request.user.is_staff %}
         <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'packages' %}">Packages</a></li>
+        {% if request.user.is_authenticated %}
+        <li class="nav-item"><a class="nav-link" href="{% url 'feedback_page' %}">Feedback</a></li>
+        {% endif %}
         {% endif %}
 
         {% if request.user.is_staff %}
         <li class="nav-item"><a class="nav-link" href="{% url 'admin_home' %}">Admin Home</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'manage_packages' %}">Manage Packages</a></li>
         <li class="nav-item"><a class="nav-link" href="{% url 'manage_bookings' %}">Manage Bookings</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'manage_feedback' %}">Feedback Management</a></li>
         {% endif %}
 
         {% if request.user.is_authenticated %}

@@ -16,6 +16,9 @@
                 <div class="hero-actions">
                     <a href="{% url 'packages' %}" class="btn btn-primary btn-lg">Explore Packages</a>
                     <a href="{% url 'plan_my_trip' %}" class="btn btn-outline-primary btn-lg">Plan My Trip</a>
+                    {% if request.user.is_authenticated and not request.user.is_staff %}
+                    <a href="{% url 'feedback_page' %}" class="btn btn-outline-secondary btn-lg">Give Feedback</a>
+                    {% endif %}
                 </div>
                 <div class="hero-metrics">
                     <div>
@@ -113,6 +116,7 @@
             </div>
         </div>
     </section>
+
 </div>
 
 {% endblock %}

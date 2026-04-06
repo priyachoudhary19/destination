@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block page_back_link %}{% endblock %}
+
+{% block content %}
+<section class="feedback-page-shell">
+    <div class="feedback-page-wrap">
+        <div class="feedback-page-orb feedback-page-orb-one" aria-hidden="true"></div>
+        <div class="feedback-page-orb feedback-page-orb-two" aria-hidden="true"></div>
+
+        <div class="feedback-page-card">
+            <div class="feedback-page-card-top">
+                <div>
+                    <p class="feedback-page-kicker">Dreamland Guest Voice</p>
+                    <h1>Feedback Time!</h1>
+                    <p>We value your opinions. Take a little time to evaluate us and help us improve your next trip.</p>
+                </div>
+                <div class="feedback-page-card-actions">
+                    <a href="{% url 'home' %}" class="feedback-page-icon-btn" aria-label="Close feedback page">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'submit_feedback' %}" class="feedback-page-form">
+                {% csrf_token %}
+                <input type="hidden" name="return_to" value="feedback_page">
+                <input type="hidden" name="name" value="{{ feedback_display_name }}">
+                <input type="hidden" name="email" value="{{ request.user.email }}">
+
+                <div class="feedback-page-section feedback-page-section-highlight">
+                    <h2>How satisfied were you when using the website?</h2>
+                    <div class="feedback-scale">
+                        {% for value in scale_values %}
+                        <div class="feedback-scale-item">
+                            <input type="radio" id="feedback-scale-{{ value }}" name="rating" value="{{ value }}" class="feedback-scale-input" {% if value == 9 %}checked{% endif %}>
+                            <label for="feedback-scale-{{ value }}" class="feedback-scale-label">{{ value }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="feedback-scale-meta">
+                        <span>Not satisfied</span>
+                        <span>Very satisfied</span>
+                    </div>
+                </div>
+
+                <div class="feedback-page-section feedback-page-section-soft">
+                    <h2>What are you thinking about us?</h2>
+                    <textarea class="feedback-page-textarea" id="feedback-message" name="message" placeholder="Tell us now and we will do it as soon as possible." required></textarea>
+                </div>
+
+                <div class="feedback-page-section feedback-page-section-soft">
+                    <h2>How did you hear about us?</h2>
+                    <div class="feedback-pill-row">
+                        <input type="radio" id="feedback-source-social" name="discovery_source" value="Social media" class="feedback-pill-input" checked>
+                        <label for="feedback-source-social" class="feedback-pill">Social media</label>
+
+                        <input type="radio" id="feedback-source-ad" name="discovery_source" value="Streaming service ad" class="feedback-pill-input">
+                        <label for="feedback-source-ad" class="feedback-pill">Streaming service ad</label>
+
+                        <input type="radio" id="feedback-source-google" name="discovery_source" value="Google search" class="feedback-pill-input">
+                        <label for="feedback-source-google" class="feedback-pill">Google search</label>
+
+                        <input type="radio" id="feedback-source-friends" name="discovery_source" value="Friends" class="feedback-pill-input">
+                        <label for="feedback-source-friends" class="feedback-pill">Friends</label>
+                    </div>
+                </div>
+
+                <div class="feedback-page-section feedback-page-section-soft feedback-page-contact-row">
+                    <div>
+                        <label class="form-label" for="feedback-contact">Contact Number</label>
+                        <input class="form-control" id="feedback-contact" name="contact_number" type="tel" inputmode="tel" placeholder="Enter your contact number" required>
+                    </div>
+                </div>
+
+                <div class="feedback-page-footer">
+                    <a href="{% url 'home' %}" class="feedback-page-later">Remind me later</a>
+                    <button type="submit" class="feedback-page-send">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

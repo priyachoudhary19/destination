@@ -25,6 +25,23 @@ class registration(models.Model):
         return self.name
 
 
+class UserFeedback(models.Model):
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    contact_number = models.CharField(max_length=20, default="")
+    message = models.TextField()
+    rating = models.PositiveSmallIntegerField(default=5)
+    satisfaction_score = models.PositiveSmallIntegerField(default=5)
+    discovery_source = models.CharField(max_length=80, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.name} - {self.rating} star"
+
+
 class TravelPackage(models.Model):
     title = models.CharField(max_length=120)
     duration = models.PositiveIntegerField(help_text="Duration in days")

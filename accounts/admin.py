@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Author, TravelBooking, TravelPackage, registration
+from .models import Author, TravelBooking, TravelPackage, UserFeedback, registration
 
 
 @admin.register(Author)
@@ -26,3 +26,19 @@ class TravelBookingAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "package", "booked_at")
     list_filter = ("booked_at",)
     search_fields = ("user__username", "package__title")
+
+
+@admin.register(UserFeedback)
+class UserFeedbackAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "email",
+        "contact_number",
+        "satisfaction_score",
+        "discovery_source",
+        "rating",
+        "created_at",
+    )
+    list_filter = ("satisfaction_score", "rating", "created_at")
+    search_fields = ("name", "email", "contact_number", "message")

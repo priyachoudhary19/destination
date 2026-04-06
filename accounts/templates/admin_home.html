@@ -17,7 +17,7 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-md-6 col-lg-6">
+        <div class="col-md-6 col-lg-4">
             <article class="admin-panel-card admin-panel-card-primary admin-panel-card-vivid h-100">
                 <img src="{% static 'images/managepackages.jpg' %}" alt="Manage travel packages" class="admin-panel-image">
                 <div class="admin-panel-content">
@@ -28,13 +28,30 @@
             </article>
         </div>
 
-        <div class="col-md-6 col-lg-6">
+        <div class="col-md-6 col-lg-4">
             <article class="admin-panel-card admin-panel-card-accent admin-panel-card-vivid h-100">
                 <img src="{% static 'images/managebooking.jpg' %}" alt="Manage bookings section" class="admin-panel-image">
                 <div class="admin-panel-content">
                     <h4>Manage Bookings</h4>
                     <p>Review bookings, confirm bus or train availability, and approve or reject customer orders.</p>
                     <a href="{% url 'manage_bookings' %}" class="btn btn-outline-primary">Open Manage Bookings</a>
+                </div>
+            </article>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <article class="admin-panel-card admin-panel-card-feedback admin-panel-card-vivid h-100">
+                <img src="{% static 'images/feedback.jpg' %}" alt="Feedback management section" class="admin-panel-image admin-panel-image-feedback">
+                <div class="admin-panel-content">
+                    <h4>Feedback Management</h4>
+                    <p>View user ratings, messages, and contact details from one clean feedback dashboard.</p>
+                    <div class="admin-panel-mini-stats">
+                        <span>Total feedback: <strong>{{ feedback_count }}</strong></span>
+                        {% if latest_feedback %}
+                        <span>Latest: <strong>{{ latest_feedback.rating }}/5</strong></span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'manage_feedback' %}" class="btn btn-outline-secondary">Open Feedback Management</a>
                 </div>
             </article>
         </div>

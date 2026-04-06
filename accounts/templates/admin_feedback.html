@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<section class="admin-bookings-page admin-feedback-page">
+    <div class="manage-card">
+        <div class="admin-feedback-hero">
+            <div
+                class="admin-feedback-hero-media"
+                role="img"
+                aria-label="Managing customer feedback banner"
+                style="background-image: url('{% static 'images/feedback.jpg' %}');"
+            ></div>
+        </div>
+
+        <div class="admin-feedback-toolbar">
+            <div>
+                <p class="booking-admin-kicker">USER FEEDBACK</p>
+                <h3>Submitted Feedback</h3>
+                <p class="text-muted mb-0">Review every submitted rating and message from travelers in one place.</p>
+            </div>
+            <div class="booking-admin-summary">
+                <div class="booking-admin-summary-card admin-feedback-summary-card">
+                    <span>Entries</span>
+                    <strong>{{ feedback_list|length }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle manage-table admin-feedback-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Contact</th>
+                        <th>Satisfaction</th>
+                        <th>Source</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in feedback_list %}
+                    <tr>
+                        <td>
+                            <strong class="admin-feedback-name">{{ item.name }}</strong>
+                            <span class="admin-feedback-email">{{ item.email }}</span>
+                        </td>
+                        <td><span class="admin-feedback-contact">{{ item.contact_number }}</span></td>
+                        <td><span class="admin-feedback-score">{{ item.satisfaction_score|default:item.rating }}/10</span></td>
+                        <td><span class="admin-feedback-source{% if not item.discovery_source %} admin-feedback-source-empty{% endif %}">{{ item.discovery_source|default:"Not shared" }}</span></td>
+                        <td class="admin-feedback-message-cell">{{ item.message }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No feedback submitted yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

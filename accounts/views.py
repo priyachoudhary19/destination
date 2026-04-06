@@ -12,14 +12,15 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
-from .forms import BookingApprovalForm, TravelBookingForm, TravelPackageForm
-from .models import TravelBooking, TravelPackage, registration
+from .forms import BookingApprovalForm, TravelBookingForm, TravelPackageForm, UserFeedbackForm
+from .models import TravelBooking, TravelPackage, UserFeedback, registration
 
 
 logger = logging.getLogger(__name__)
@@ -202,6 +203,82 @@ def home(request):
     return render(request, "home.html")
 
 
+def help_center(request):
+    return render(request, "help_center.html")
+
+
+@login_required(login_url="/login/")
+def feedback_page(request):
+    if request.user.is_staff:
+        return redirect("admin_home")
+    display_name = (
+        registration.objects.filter(email=request.user.email).values_list("name", flat=True).first()
+        or request.user.get_full_name()
+        or request.user.username
+    )
+    return render(
+        request,
+        "feedback_page.html",
+        {
+            "scale_values": range(1, 11),
+            "feedback_display_name": display_name,
+        },
+    )
+
+
+@require_POST
+def submit_feedback(request):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    next_target = "feedback_page" if request.POST.get("return_to") == "feedback_page" else "home"
+
+    if not request.user.is_authenticated or request.user.is_staff:
+        if is_ajax:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "errors": {
+                        "__all__": ["Please login as a user to submit feedback."],
+                    },
+                },
+                status=403,
+            )
+        messages.error(request, "Please login as a user to submit feedback.")
+        return redirect(next_target)
+
+    feedback_data = request.POST.copy()
+    display_name = (
+        registration.objects.filter(email=request.user.email).values_list("name", flat=True).first()
+        or request.user.get_full_name()
+        or request.user.username
+    )
+    if feedback_data.get("name") in {"", request.user.username, request.user.email}:
+        feedback_data["name"] = display_name
+
+    form = UserFeedbackForm(feedback_data)
+    if form.is_valid():
+        feedback = form.save()
+        if is_ajax:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "message": "Thank you for your feedback.",
+                    "feedback": {
+                        "id": feedback.id,
+                        "name": feedback.name,
+                        "rating": feedback.rating,
+                    },
+                }
+            )
+        messages.success(request, "Thank you for your feedback.")
+        return redirect(next_target)
+
+    if is_ajax:
+        return JsonResponse({"ok": False, "errors": form.errors}, status=400)
+
+    messages.error(request, "Please complete all feedback fields correctly.")
+    return redirect(next_target)
+
+
 def plan_my_trip(request):
     active_packages_qs = TravelPackage.objects.filter(is_active=True)
     packages_qs = active_packages_qs
@@ -278,7 +355,16 @@ def admin_home(request):
     if not request.user.is_staff:
         return redirect("admin_login")
 
-    return render(request, "admin_home.html")
+    feedback_count = UserFeedback.objects.count()
+    latest_feedback = UserFeedback.objects.first()
+    return render(
+        request,
+        "admin_home.html",
+        {
+            "feedback_count": feedback_count,
+            "latest_feedback": latest_feedback,
+        },
+    )
 
 
 def packages(request):
@@ -456,6 +542,28 @@ def manage_bookings(request):
         return redirect("admin_login")
 
     return render(request, "admin_bookings.html", {"bookings": _booking_rows_with_forms()})
+
+
+@login_required(login_url="/admin-portal/login/")
+def manage_feedback(request):
+    if not request.user.is_staff:
+        return redirect("admin_login")
+
+    feedback_list = UserFeedback.objects.all()
+    return render(request, "admin_feedback.html", {"feedback_list": feedback_list})
+
+
+@login_required(login_url="/admin-portal/login/")
+def delete_feedback(request, feedback_id):
+    if not request.user.is_staff:
+        return redirect("admin_login")
+
+    if request.method == "POST":
+        feedback = get_object_or_404(UserFeedback, id=feedback_id)
+        feedback.delete()
+        messages.success(request, "Feedback deleted.")
+
+    return redirect("manage_feedback")
 
 
 @login_required(login_url="/admin-portal/login/")

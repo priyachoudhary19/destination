@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="help-center-page">
+    <section class="help-shell">
+        <div class="help-cloud help-cloud-left"></div>
+        <div class="help-cloud help-cloud-right"></div>
+        <div class="help-cloud help-cloud-small"></div>
+        <div class="help-flight-trail"></div>
+
+        <section class="help-hero">
+            <div class="help-plane-graphic" aria-hidden="true">
+                <i class="fa-solid fa-plane"></i>
+            </div>
+
+            <p class="help-kicker">Dreamland Travel Care</p>
+            <h1>Help &amp; Support</h1>
+            <p class="help-lead">
+                Find answers to common questions and get assistance with your travel plans.
+            </p>
+
+            <div class="help-search-card">
+                <label for="help-search" class="visually-hidden">Search help topics</label>
+                <div class="help-search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input id="help-search" type="text" placeholder="Search FAQs or type your question..." disabled>
+                </div>
+            </div>
+        </section>
+
+        <section class="help-content">
+            <div class="help-faq-grid">
+                <article class="help-faq-tile">
+                    <div class="help-faq-icon help-faq-icon-orange">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </div>
+                    <h2>Booking &amp; Reservations</h2>
+                    <ul class="help-faq-list">
+                        <li>How do I book a trip?</li>
+                        <li>Can I cancel or reschedule my booking?</li>
+                        <li>What payment methods are accepted?</li>
+                    </ul>
+                </article>
+
+                <article class="help-faq-tile">
+                    <div class="help-faq-icon help-faq-icon-blue">
+                        <i class="fa-solid fa-passport"></i>
+                    </div>
+                    <h2>Travel Documents</h2>
+                    <ul class="help-faq-list">
+                        <li>Do I need a visa?</li>
+                        <li>What ID is required for domestic travel?</li>
+                        <li>How do I upload my documents?</li>
+                    </ul>
+                </article>
+
+                <article class="help-faq-tile">
+                    <div class="help-faq-icon help-faq-icon-orange">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <h2>Packages &amp; Offers</h2>
+                    <ul class="help-faq-list">
+                        <li>What&apos;s included in a tour package?</li>
+                        <li>Are there seasonal discounts?</li>
+                        <li>Can I customize my itinerary?</li>
+                    </ul>
+                </article>
+
+                <article class="help-faq-tile">
+                    <div class="help-faq-icon help-faq-icon-blue">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <h2>Customer Support</h2>
+                    <ul class="help-faq-list">
+                        <li>How can I contact support?</li>
+                        <li>What are your service hours?</li>
+                        <li>Is live chat available?</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section class="help-support-panel">
+            <div class="help-section-title">
+                <span></span>
+                <h3>Need More Help?</h3>
+                <span></span>
+            </div>
+
+            <div class="help-action-strip">
+                <a href="tel:+919876543210" class="help-action-link">
+                    <i class="fa-solid fa-phone-volume"></i>
+                    <span>Phone Support</span>
+                </a>
+                <a href="{% url 'feedback_page' %}" class="help-action-link">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Live Chat</span>
+                </a>
+                <a href="mailto:priyaaa0305@gmail.com" class="help-action-link">
+                    <i class="fa-regular fa-envelope"></i>
+                    <span>Email Support</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="help-links-panel">
+            <div class="help-section-title">
+                <span></span>
+                <h3>Quick Links</h3>
+                <span></span>
+            </div>
+
+            <div class="help-link-strip">
+                <a href="{% url 'packages' %}" class="help-link-item">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Refund Policy</span>
+                </a>
+                <a href="{% url 'plan_my_trip' %}" class="help-link-item">
+                    <i class="fa-regular fa-clipboard"></i>
+                    <span>Terms &amp; Conditions</span>
+                </a>
+                <a href="{% url 'packages' %}" class="help-link-item">
+                    <i class="fa-solid fa-shield-heart"></i>
+                    <span>Travel Insurance Info</span>
+                </a>
+            </div>
+        </section>
+    </section>
+</div>
+{% endblock %}

@@ -1,7 +1,8 @@
 from django import forms
+from django.core.validators import RegexValidator
 from django.utils import timezone
 
-from .models import TravelBooking, TravelPackage
+from .models import TravelBooking, TravelPackage, UserFeedback
 
 
 class TravelPackageForm(forms.ModelForm):
@@ -50,6 +51,71 @@ class TravelPackageForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+class UserFeedbackForm(forms.ModelForm):
+    contact_number = forms.CharField(
+        validators=[
+            RegexValidator(
+                regex=r"^[0-9+\-\s]{10,20}$",
+                message="Enter a valid contact number.",
+            )
+        ]
+    )
+    discovery_source = forms.CharField(required=False)
+
+    class Meta:
+        model = UserFeedback
+        fields = [
+            "name",
+            "email",
+            "contact_number",
+            "message",
+            "rating",
+            "satisfaction_score",
+            "discovery_source",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Enter your full name"}),
+            "email": forms.EmailInput(attrs={"placeholder": "Enter your email address"}),
+            "contact_number": forms.TextInput(attrs={"placeholder": "Enter your contact number"}),
+            "message": forms.Textarea(
+                attrs={
+                    "rows": 5,
+                    "placeholder": "Share your feedback here...",
+                }
+            ),
+            "rating": forms.HiddenInput(),
+            "satisfaction_score": forms.HiddenInput(),
+            "discovery_source": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ["name", "email", "contact_number", "message", "rating"]:
+            self.fields[field_name].required = True
+        self.fields["satisfaction_score"].required = False
+        self.fields["discovery_source"].required = False
+
+    def clean_rating(self):
+        rating = self.cleaned_data["rating"]
+        if rating < 1 or rating > 10:
+            raise forms.ValidationError("Select a rating between 1 and 10.")
+        if rating > 5:
+            rating = (rating + 1) // 2
+        return rating
+
+    def clean_satisfaction_score(self):
+        score = self.cleaned_data.get("satisfaction_score")
+        if not score:
+            score = self.data.get("rating")
+        try:
+            score = int(score)
+        except (TypeError, ValueError):
+            raise forms.ValidationError("Select a satisfaction score between 1 and 10.")
+        if score < 1 or score > 10:
+            raise forms.ValidationError("Select a satisfaction score between 1 and 10.")
+        return score
 
 
 class TravelBookingForm(forms.ModelForm):
