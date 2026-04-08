@@ -35,11 +35,20 @@
                         <i class="fa-solid fa-calendar-check"></i>
                     </div>
                     <h2>Booking &amp; Reservations</h2>
-                    <ul class="help-faq-list">
-                        <li>How do I book a trip?</li>
-                        <li>Can I cancel or reschedule my booking?</li>
-                        <li>What payment methods are accepted?</li>
-                    </ul>
+                    <div class="help-faq-accordion">
+                        <details class="help-faq-item">
+                            <summary>How do I book a trip?</summary>
+                            <p>You can book by browsing packages, selecting your destination, and completing the booking form with traveler and payment details.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>Can I cancel or reschedule my booking?</summary>
+                            <p>Yes. Cancellation and reschedule options depend on package terms, travel date, and partner policy.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>What payment methods are accepted?</summary>
+                            <p>We accept secure online payments, cards, UPI, and supported payment gateways for eligible bookings.</p>
+                        </details>
+                    </div>
                 </article>
 
                 <article class="help-faq-tile">
@@ -47,11 +56,20 @@
                         <i class="fa-solid fa-passport"></i>
                     </div>
                     <h2>Travel Documents</h2>
-                    <ul class="help-faq-list">
-                        <li>Do I need a visa?</li>
-                        <li>What ID is required for domestic travel?</li>
-                        <li>How do I upload my documents?</li>
-                    </ul>
+                    <div class="help-faq-accordion">
+                        <details class="help-faq-item">
+                            <summary>Do I need a visa?</summary>
+                            <p>Visa requirements depend on destination. For international trips this is usually required. Please check package details.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>What ID is required for domestic travel?</summary>
+                            <p>A valid government ID is required for domestic travel. Airlines and hotels may ask for matching booking details.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>How do I upload my documents?</summary>
+                            <p>Share documents through the booking confirmation flow or contact support for assistance.</p>
+                        </details>
+                    </div>
                 </article>
 
                 <article class="help-faq-tile">
@@ -59,11 +77,20 @@
                         <i class="fa-solid fa-briefcase"></i>
                     </div>
                     <h2>Packages &amp; Offers</h2>
-                    <ul class="help-faq-list">
-                        <li>What&apos;s included in a tour package?</li>
-                        <li>Are there seasonal discounts?</li>
-                        <li>Can I customize my itinerary?</li>
-                    </ul>
+                    <div class="help-faq-accordion">
+                        <details class="help-faq-item">
+                            <summary>What&apos;s included in a tour package?</summary>
+                            <p>Packages typically include stay, sightseeing, selected meals, transport, and guided assistance based on itinerary.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>Are there seasonal discounts?</summary>
+                            <p>Yes, seasonal and festive offers are available on selected routes and departure windows.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>Can I customize my itinerary?</summary>
+                            <p>Yes, customization is available for many plans based on budget, days, and destination preferences.</p>
+                        </details>
+                    </div>
                 </article>
 
                 <article class="help-faq-tile">
@@ -71,11 +98,20 @@
                         <i class="fa-solid fa-headset"></i>
                     </div>
                     <h2>Customer Support</h2>
-                    <ul class="help-faq-list">
-                        <li>How can I contact support?</li>
-                        <li>What are your service hours?</li>
-                        <li>Is live chat available?</li>
-                    </ul>
+                    <div class="help-faq-accordion">
+                        <details class="help-faq-item">
+                            <summary>How can I contact support?</summary>
+                            <p>You can contact our support team via phone, email, or WhatsApp. Use the Need More Help section below.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>What are your service hours?</summary>
+                            <p>Support is available Monday to Saturday during working hours. Exact timings may vary on holidays.</p>
+                        </details>
+                        <details class="help-faq-item">
+                            <summary>Is live chat available?</summary>
+                            <p>Live chat availability depends on support load. You can still reach us quickly through WhatsApp and phone support.</p>
+                        </details>
+                    </div>
                 </article>
             </div>
         </section>
@@ -88,18 +124,18 @@
             </div>
 
             <div class="help-action-strip">
-                <a href="tel:+919876543210" class="help-action-link">
+                <div class="help-action-link help-action-link-static">
                     <i class="fa-solid fa-phone-volume"></i>
                     <span>Phone Support</span>
-                </a>
-                <a href="{% url 'feedback_page' %}" class="help-action-link">
-                    <i class="fa-solid fa-comments"></i>
-                    <span>Live Chat</span>
-                </a>
-                <a href="mailto:priyaaa0305@gmail.com" class="help-action-link">
+                </div>
+                <div class="help-action-link help-action-link-static">
                     <i class="fa-regular fa-envelope"></i>
                     <span>Email Support</span>
-                </a>
+                </div>
+                <div class="help-action-link help-action-link-static">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    <span>WhatsApp Support</span>
+                </div>
             </div>
         </section>
 
@@ -111,18 +147,18 @@
             </div>
 
             <div class="help-link-strip">
-                <a href="{% url 'packages' %}" class="help-link-item">
+                <a href="{% url 'refund_policy' %}" class="help-link-item">
                     <i class="fa-solid fa-receipt"></i>
                     <span>Refund Policy</span>
                 </a>
-                <a href="{% url 'plan_my_trip' %}" class="help-link-item">
+                <a href="{% url 'terms_and_conditions' %}" class="help-link-item">
                     <i class="fa-regular fa-clipboard"></i>
                     <span>Terms &amp; Conditions</span>
                 </a>
-                <a href="{% url 'packages' %}" class="help-link-item">
+                <div class="help-link-item help-link-item-static">
                     <i class="fa-solid fa-shield-heart"></i>
-                    <span>Travel Insurance Info</span>
-                </a>
+                    <span>Travel Insurance Help</span>
+                </div>
             </div>
         </section>
     </section>

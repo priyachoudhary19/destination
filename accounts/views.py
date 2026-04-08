@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 from decimal import Decimal
 from urllib import error, request as urllib_request
 
@@ -11,6 +12,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -117,25 +120,69 @@ def update_booking_payment(booking, payment_id="", signature="", status=None, er
 
 def register(request):
     if request.method == "POST":
-        email = request.POST["email"]
+        email = request.POST["email"].strip().lower()
         password = request.POST["password"]
+        form_data = {
+            "name": request.POST.get("name", "").strip(),
+            "email": email,
+            "mobile": request.POST.get("mobile", "").strip(),
+            "address": request.POST.get("address", "").strip(),
+            "city": request.POST.get("city", "").strip(),
+            "state": request.POST.get("state", "").strip(),
+            "pincode": request.POST.get("pincode", "").strip(),
+        }
 
 
         if User.objects.filter(username=email).exists():
-            return render(request, "register.html", {"error": "Email already registered"})
+            return render(
+                request,
+                "register.html",
+                {
+                    "error": "This email is already registered. Please login or use a different email.",
+                    "form_data": form_data,
+                },
+            )
+
+        password_errors = []
+        if len(password) < 8:
+            password_errors.append("Password must be at least 8 characters long.")
+        if not re.search(r"[A-Z]", password):
+            password_errors.append("Password must include at least one uppercase letter (A-Z).")
+        if not re.search(r"[a-z]", password):
+            password_errors.append("Password must include at least one lowercase letter (a-z).")
+        if not re.search(r"\d", password):
+            password_errors.append("Password must include at least one number (0-9).")
+        if not re.search(r"[^A-Za-z0-9]", password):
+            password_errors.append("Password must include at least one special character (e.g. @, #, !).")
+
+        try:
+            validate_password(password, user=User(username=email, email=email))
+        except ValidationError as exc:
+            password_errors.extend(exc.messages)
+
+        if password_errors:
+            unique_errors = list(dict.fromkeys(password_errors))
+            return render(
+                request,
+                "register.html",
+                {
+                    "error_list": unique_errors,
+                    "form_data": form_data,
+                },
+            )
 
         User.objects.create_user(username=email, email=email, password=password)
 
 
         obj = registration()
-        obj.name = request.POST["name"]
+        obj.name = form_data["name"]
         obj.email = email
-        obj.mobile = request.POST["mobile"]
+        obj.mobile = form_data["mobile"]
         obj.password = password
-        obj.address = request.POST["address"]
-        obj.state = request.POST["state"]
-        obj.city = request.POST["city"]
-        obj.pincode = request.POST["pincode"]
+        obj.address = form_data["address"]
+        obj.state = form_data["state"]
+        obj.city = form_data["city"]
+        obj.pincode = form_data["pincode"]
         obj.save()
 
         # 📧 Send Email
@@ -150,7 +197,7 @@ def register(request):
         messages.success(request, "Registration successful. Please login.")
         return redirect("login")
 
-    return render(request, "register.html")
+    return render(request, "register.html", {"form_data": {}})
 
 
 def login_view(request):
@@ -205,6 +252,14 @@ def home(request):
 
 def help_center(request):
     return render(request, "help_center.html")
+
+
+def refund_policy(request):
+    return render(request, "refund_policy.html")
+
+
+def terms_and_conditions(request):
+    return render(request, "terms_conditions.html")
 
 
 @login_required(login_url="/login/")

@@ -33,86 +33,108 @@
                 </div>
                 {% endif %}
 
+                {% if error_list %}
+                <div class="alert alert-danger">
+                    <strong>Please use a stronger password:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for item in error_list %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <form method="POST" autocomplete="on">
                     {% csrf_token %}
 
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Name</label>
-                            <input type="text" name="name" class="form-control" autocomplete="off" required>
+                            <input type="text" name="name" class="form-control" autocomplete="off" value="{{ form_data.name|default:'' }}" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" autocomplete="off" required>
+                            <input type="email" name="email" class="form-control" autocomplete="off" value="{{ form_data.email|default:'' }}" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Mobile</label>
-                            <input type="tel" name="mobile" class="form-control" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel-national" required>
+                            <input type="tel" name="mobile" class="form-control" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" autocomplete="tel-national" value="{{ form_data.mobile|default:'' }}" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" autocomplete="new-password" data-lpignore="true" required>
+                            <input
+                                type="password"
+                                name="password"
+                                class="form-control"
+                                autocomplete="new-password"
+                                data-lpignore="true"
+                                minlength="8"
+                                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+                                title="Use at least 8 characters with uppercase, lowercase, number, and special character."
+                                required
+                            >
+                            <small class="text-muted">Use at least 8 characters with uppercase, lowercase, number, and special character.</small>
                         </div>
 
                         <div class="col-md-12 mb-3">
                             <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" rows="2" required></textarea>
+                            <textarea name="address" class="form-control" rows="2" required>{{ form_data.address|default:'' }}</textarea>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control" autocomplete="address-level2" required>
+                            <input type="text" name="city" class="form-control" autocomplete="address-level2" value="{{ form_data.city|default:'' }}" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">State</label>
                             <select name="state" class="form-select" autocomplete="address-level1" required>
-                                <option value="" selected disabled>Select State</option>
-                                <option>Andhra Pradesh</option>
-                                <option>Arunachal Pradesh</option>
-                                <option>Assam</option>
-                                <option>Bihar</option>
-                                <option>Chhattisgarh</option>
-                                <option>Goa</option>
-                                <option>Gujarat</option>
-                                <option>Haryana</option>
-                                <option>Himachal Pradesh</option>
-                                <option>Jharkhand</option>
-                                <option>Karnataka</option>
-                                <option>Kerala</option>
-                                <option>Madhya Pradesh</option>
-                                <option>Maharashtra</option>
-                                <option>Manipur</option>
-                                <option>Meghalaya</option>
-                                <option>Mizoram</option>
-                                <option>Nagaland</option>
-                                <option>Odisha</option>
-                                <option>Punjab</option>
-                                <option>Rajasthan</option>
-                                <option>Sikkim</option>
-                                <option>Tamil Nadu</option>
-                                <option>Telangana</option>
-                                <option>Tripura</option>
-                                <option>Uttar Pradesh</option>
-                                <option>Uttarakhand</option>
-                                <option>West Bengal</option>
-                                <option>Andaman and Nicobar Islands</option>
-                                <option>Chandigarh</option>
-                                <option>Dadra and Nagar Haveli and Daman and Diu</option>
-                                <option>Delhi</option>
-                                <option>Jammu and Kashmir</option>
-                                <option>Ladakh</option>
-                                <option>Lakshadweep</option>
-                                <option>Puducherry</option>
+                                <option value="" {% if not form_data.state %}selected{% endif %} disabled>Select State</option>
+                                <option {% if form_data.state == "Andhra Pradesh" %}selected{% endif %}>Andhra Pradesh</option>
+                                <option {% if form_data.state == "Arunachal Pradesh" %}selected{% endif %}>Arunachal Pradesh</option>
+                                <option {% if form_data.state == "Assam" %}selected{% endif %}>Assam</option>
+                                <option {% if form_data.state == "Bihar" %}selected{% endif %}>Bihar</option>
+                                <option {% if form_data.state == "Chhattisgarh" %}selected{% endif %}>Chhattisgarh</option>
+                                <option {% if form_data.state == "Goa" %}selected{% endif %}>Goa</option>
+                                <option {% if form_data.state == "Gujarat" %}selected{% endif %}>Gujarat</option>
+                                <option {% if form_data.state == "Haryana" %}selected{% endif %}>Haryana</option>
+                                <option {% if form_data.state == "Himachal Pradesh" %}selected{% endif %}>Himachal Pradesh</option>
+                                <option {% if form_data.state == "Jharkhand" %}selected{% endif %}>Jharkhand</option>
+                                <option {% if form_data.state == "Karnataka" %}selected{% endif %}>Karnataka</option>
+                                <option {% if form_data.state == "Kerala" %}selected{% endif %}>Kerala</option>
+                                <option {% if form_data.state == "Madhya Pradesh" %}selected{% endif %}>Madhya Pradesh</option>
+                                <option {% if form_data.state == "Maharashtra" %}selected{% endif %}>Maharashtra</option>
+                                <option {% if form_data.state == "Manipur" %}selected{% endif %}>Manipur</option>
+                                <option {% if form_data.state == "Meghalaya" %}selected{% endif %}>Meghalaya</option>
+                                <option {% if form_data.state == "Mizoram" %}selected{% endif %}>Mizoram</option>
+                                <option {% if form_data.state == "Nagaland" %}selected{% endif %}>Nagaland</option>
+                                <option {% if form_data.state == "Odisha" %}selected{% endif %}>Odisha</option>
+                                <option {% if form_data.state == "Punjab" %}selected{% endif %}>Punjab</option>
+                                <option {% if form_data.state == "Rajasthan" %}selected{% endif %}>Rajasthan</option>
+                                <option {% if form_data.state == "Sikkim" %}selected{% endif %}>Sikkim</option>
+                                <option {% if form_data.state == "Tamil Nadu" %}selected{% endif %}>Tamil Nadu</option>
+                                <option {% if form_data.state == "Telangana" %}selected{% endif %}>Telangana</option>
+                                <option {% if form_data.state == "Tripura" %}selected{% endif %}>Tripura</option>
+                                <option {% if form_data.state == "Uttar Pradesh" %}selected{% endif %}>Uttar Pradesh</option>
+                                <option {% if form_data.state == "Uttarakhand" %}selected{% endif %}>Uttarakhand</option>
+                                <option {% if form_data.state == "West Bengal" %}selected{% endif %}>West Bengal</option>
+                                <option {% if form_data.state == "Andaman and Nicobar Islands" %}selected{% endif %}>Andaman and Nicobar Islands</option>
+                                <option {% if form_data.state == "Chandigarh" %}selected{% endif %}>Chandigarh</option>
+                                <option {% if form_data.state == "Dadra and Nagar Haveli and Daman and Diu" %}selected{% endif %}>Dadra and Nagar Haveli and Daman and Diu</option>
+                                <option {% if form_data.state == "Delhi" %}selected{% endif %}>Delhi</option>
+                                <option {% if form_data.state == "Jammu and Kashmir" %}selected{% endif %}>Jammu and Kashmir</option>
+                                <option {% if form_data.state == "Ladakh" %}selected{% endif %}>Ladakh</option>
+                                <option {% if form_data.state == "Lakshadweep" %}selected{% endif %}>Lakshadweep</option>
+                                <option {% if form_data.state == "Puducherry" %}selected{% endif %}>Puducherry</option>
                             </select>
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Pincode</label>
-                            <input type="text" name="pincode" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="postal-code" required>
+                            <input type="text" name="pincode" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="postal-code" value="{{ form_data.pincode|default:'' }}" required>
                         </div>
                     </div>
 
