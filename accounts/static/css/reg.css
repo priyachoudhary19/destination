@@ -1,3 +1,5 @@
+/* Legacy Registration File */
+/* Why: Kept for backward compatibility where templates may still reference this file directly. */
 /* Google Font (optional but recommended) */
 /* Add in HTML head:
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">

@@ -2,6 +2,21 @@ from django.urls import path
 
 from .views import *
 
+DRF_AVAILABLE = True
+try:
+    from .api_views import (
+        ApiOverviewView,
+        FeedbackCreateApiView,
+        LoginApiView,
+        LogoutApiView,
+        MyBookingsApiView,
+        PackageDetailApiView,
+        PackageListApiView,
+        RegisterApiView,
+    )
+except ModuleNotFoundError:
+    DRF_AVAILABLE = False
+
 
 urlpatterns = [
     path('', home, name='home'),
@@ -32,4 +47,17 @@ urlpatterns = [
     path('packages/manage/edit/<int:package_id>/', edit_package, name='edit_package_legacy'),
     path('packages/manage/delete/<int:package_id>/', delete_package, name='delete_package_legacy'),
     path('logout/', logout_view, name='logout'),
+
 ]
+
+if DRF_AVAILABLE:
+    urlpatterns += [
+        path('api/', ApiOverviewView.as_view(), name='api_overview'),
+        path('api/packages/', PackageListApiView.as_view(), name='api_packages'),
+        path('api/packages/<int:id>/', PackageDetailApiView.as_view(), name='api_package_detail'),
+        path('api/feedback/', FeedbackCreateApiView.as_view(), name='api_feedback_create'),
+        path('api/auth/register/', RegisterApiView.as_view(), name='api_register'),
+        path('api/auth/login/', LoginApiView.as_view(), name='api_login'),
+        path('api/auth/logout/', LogoutApiView.as_view(), name='api_logout'),
+        path('api/bookings/me/', MyBookingsApiView.as_view(), name='api_my_bookings'),
+    ]

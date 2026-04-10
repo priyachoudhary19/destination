@@ -80,6 +80,10 @@ INSTALLED_APPS = [
 ]
 
 WHITENOISE_INSTALLED = find_spec("whitenoise") is not None
+DRF_INSTALLED = find_spec("rest_framework") is not None
+
+if DRF_INSTALLED:
+    INSTALLED_APPS.append('rest_framework')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -215,6 +219,16 @@ RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
 RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
 RAZORPAY_COMPANY_NAME = os.environ.get('RAZORPAY_COMPANY_NAME', 'Dreamland Destinations')
 RAZORPAY_CURRENCY = os.environ.get('RAZORPAY_CURRENCY', 'INR')
+
+if DRF_INSTALLED:
+    REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': [
+            'rest_framework.authentication.SessionAuthentication',
+        ],
+        'DEFAULT_PERMISSION_CLASSES': [
+            'rest_framework.permissions.AllowAny',
+        ],
+    }
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SESSION_COOKIE_SECURE = not DEBUG

@@ -1,0 +1,228 @@
+/* Responsive Overrides */
+/* Why: Central place for viewport-specific overrides to keep behavior predictable. */
+/* Global Responsive Overrides */
+/* Source: home.css lines 5201-5422 */
+
+/* -------------------------------------------------------------------------- */
+/* Responsive */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    .manage-packages-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .site-navbar .container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .navbar-collapse {
+        width: 100%;
+    }
+
+    .navbar-nav {
+        width: 100%;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px;
+    }
+
+    .auth-shell {
+        min-height: auto;
+        align-items: stretch;
+    }
+
+    .auth-card {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-media {
+        display: none !important;
+    }
+
+    .auth-form-wrap {
+        min-height: auto;
+    }
+
+    .hero-image {
+        height: 320px;
+    }
+
+    .packages-hero,
+    .home-hero,
+    .admin-home-hero,
+    .auth-card,
+    .detail-visual-card,
+    .package-card,
+    .admin-login-card,
+    .manage-packages-page .manage-card {
+        border-radius: 22px;
+    }
+
+    .booking-admin-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .booking-admin-summary {
+        width: 100%;
+    }
+
+    .booking-admin-summary-card {
+        width: 100%;
+    }
+
+    .plan-trip-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .manage-packages-header {
+        flex-direction: column;
+    }
+
+    .manage-packages-list-card {
+        padding: 16px;
+    }
+
+    .manage-packages-table th,
+    .manage-packages-table td {
+        padding: 14px 8px;
+    }
+
+    .manage-packages-table {
+        font-size: 0.9rem;
+        min-width: 780px;
+    }
+
+    .manage-packages-page .manage-card,
+    .manage-packages-list-card {
+        padding: 18px;
+    }
+
+    .manage-packages-table-wrap {
+        overflow-x: auto;
+    }
+
+    .destination-card img {
+        height: 250px;
+    }
+
+    .hero-actions,
+    .hero-metrics {
+        gap: 8px;
+    }
+
+    .back-home-link {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .plan-trip-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .plan-trip-filter-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .plan-trip-filter-actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .help-faq-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .help-plane-graphic {
+        right: 24px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .help-shell {
+        border-radius: 26px;
+        padding: 20px 14px 28px;
+    }
+
+    .help-shell::before,
+    .help-shell::after {
+        height: 104px;
+    }
+
+    .help-hero h1 {
+        font-size: 2.35rem;
+    }
+
+    .help-lead {
+        font-size: 1rem;
+    }
+
+    .help-plane-graphic,
+    .help-cloud-small {
+        display: none;
+    }
+
+    .help-cloud-left {
+        left: 24px;
+        top: 28px;
+    }
+
+    .help-cloud-right {
+        right: 28px;
+        top: 34px;
+    }
+
+    .help-flight-trail {
+        top: 132px;
+        width: 82%;
+    }
+
+    .help-search-box {
+        min-height: 62px;
+        padding: 14px 16px;
+        border-radius: 10px;
+    }
+
+    .help-faq-tile {
+        padding: 18px 16px;
+    }
+
+    .help-action-strip,
+    .help-link-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .help-action-link,
+    .help-link-item {
+        min-height: 66px;
+        justify-content: flex-start;
+    }
+
+    .help-action-link + .help-action-link,
+    .help-link-item + .help-link-item {
+        border-left: 0;
+        border-top: 1px solid rgba(210, 223, 241, 0.96);
+    }
+}
+
+@media (max-width: 420px) {
+    .help-section-title {
+        gap: 10px;
+    }
+
+    .help-section-title h3 {
+        font-size: 1.2rem;
+    }
+}
+
