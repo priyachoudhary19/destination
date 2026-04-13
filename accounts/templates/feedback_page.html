@@ -24,7 +24,7 @@
 
             <form method="POST" action="{% url 'submit_feedback' %}" class="feedback-page-form">
                 {% csrf_token %}
-                <input type="hidden" name="return_to" value="feedback_page">
+                <input type="hidden" name="return_to" value="home">
                 <input type="hidden" name="name" value="{{ feedback_display_name }}">
                 <input type="hidden" name="email" value="{{ request.user.email }}">
 

@@ -33,6 +33,35 @@
     margin-bottom: 10px;
 }
 
+.hero-welcome-block {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.hero-welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(224, 235, 255, 0.96), rgba(255, 244, 233, 0.92));
+    border: 1px solid rgba(168, 193, 236, 0.88);
+    color: #2e5fb7;
+    font-size: 0.78rem;
+    letter-spacing: 0.16em;
+    font-weight: 800;
+}
+
+.hero-welcome-name {
+    margin: 0;
+    color: #17345f;
+    font-family: var(--heading-font);
+    font-size: clamp(1.55rem, 2.3vw, 2.35rem);
+    font-weight: 700;
+    line-height: 1.08;
+}
+
 .home-hero h1 {
     margin: 0 0 12px;
     line-height: 0.98;

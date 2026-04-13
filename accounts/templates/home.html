@@ -10,15 +10,19 @@
         <div class="hero-pattern"></div>
         <div class="row align-items-center g-4 position-relative">
             <div class="col-lg-6">
+                {% if greeting_name %}
+                <div class="hero-welcome-block">
+                    <span class="hero-welcome-badge">WELCOME BACK</span>
+                    <p class="hero-welcome-name">Hello, {{ greeting_name }}</p>
+                </div>
+                {% else %}
                 <p class="hero-kicker">PREMIUM TRAVEL MANAGEMENT</p>
+                {% endif %}
                 <h1>Explore the world in soft, beautiful comfort.</h1>
                 <p class="hero-lead">Curated packages, elegant stays, and smooth transport planning for stress-free journeys across destinations you will remember forever.</p>
                 <div class="hero-actions">
                     <a href="{% url 'packages' %}" class="btn btn-primary btn-lg">Explore Packages</a>
                     <a href="{% url 'plan_my_trip' %}" class="btn btn-outline-primary btn-lg">Plan My Trip</a>
-                    {% if request.user.is_authenticated and not request.user.is_staff %}
-                    <a href="{% url 'feedback_page' %}" class="btn btn-outline-secondary btn-lg">Give Feedback</a>
-                    {% endif %}
                 </div>
                 <div class="hero-metrics">
                     <div>

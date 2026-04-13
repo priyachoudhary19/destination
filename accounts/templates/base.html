@@ -64,10 +64,18 @@
             </div>
 
             <div class="col-lg-4 col-md-6">
-                <a href="{% url 'help_center' %}" class="footer-help-link">
-                    Help &amp; FAQ
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                </a>
+                <div class="footer-link-stack">
+                    <a href="{% url 'help_center' %}" class="footer-help-link footer-link-top">
+                        Help &amp; FAQ
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                    {% if user.is_authenticated and not user.is_staff %}
+                    <a href="{% url 'feedback_page' %}" class="footer-help-link footer-link-bottom">
+                        Feedback
+                        <i class="fa-solid fa-comment-dots"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="col-lg-4 col-md-6">

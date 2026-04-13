@@ -220,6 +220,21 @@
     text-decoration: none;
 }
 
+.footer-link-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+}
+
+.footer-link-top {
+    order: 1;
+}
+
+.footer-link-bottom {
+    order: 2;
+}
+
 .footer-help-link:hover {
     color: #183b72;
 }

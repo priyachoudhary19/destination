@@ -42,10 +42,15 @@
                             {% if booking.special_requests %}
                             <div class="table-subtext">{{ booking.special_requests }}</div>
                             {% endif %}
+                            {% if booking.cancellation_reason %}
+                            <div class="table-subtext"><strong>Cancellation reason:</strong> {{ booking.cancellation_reason }}</div>
+                            {% endif %}
                         </td>
                         <td class="booking-status-cell">
                             {% if booking.approval_status == "approved" %}
                             <strong class="booking-status-pill booking-status-approved">Approved</strong>
+                            {% elif booking.approval_status == "cancelled" %}
+                            <strong class="booking-status-pill booking-status-rejected">Cancelled by User</strong>
                             {% elif booking.approval_status == "rejected" %}
                             <strong class="booking-status-pill booking-status-rejected">Rejected</strong>
                             {% else %}

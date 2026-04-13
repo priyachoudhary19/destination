@@ -84,6 +84,15 @@
 }
 
 @media (max-width: 767.98px) {
+    .hero-welcome-block {
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .hero-welcome-name {
+        font-size: clamp(1.35rem, 7vw, 1.85rem);
+    }
+
     .manage-packages-header {
         flex-direction: column;
     }

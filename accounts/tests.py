@@ -1,12 +1,17 @@
 from datetime import timedelta
+import hashlib
+import hmac
+import json
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import TravelBooking, TravelPackage, UserFeedback
+from .models import TravelBooking, TravelPackage, UserFeedback, registration
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
@@ -22,6 +27,16 @@ class PackageBookingFlowTests(TestCase):
             email="admin@example.com",
             password="adminpass123",
             is_staff=True,
+        )
+        registration.objects.create(
+            name="Priya Sharma",
+            email="traveler@example.com",
+            mobile="9876543210",
+            password="pass12345",
+            address="Beach Road",
+            state="Goa",
+            city="Panaji",
+            pincode="403001",
         )
         self.package = TravelPackage.objects.create(
             title="Goa Escape",
@@ -49,6 +64,18 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Login to See Full Details")
         self.assertNotContains(response, "Baga Beach, Fort Aguada, Dudhsagar")
         self.assertNotContains(response, "Day 1: Arrival in Goa")
+
+    def test_login_page_sets_csrf_cookie(self):
+        response = self.client.get(reverse("login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("csrftoken", response.cookies)
+
+    def test_register_page_sets_csrf_cookie(self):
+        response = self.client.get(reverse("register"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("csrftoken", response.cookies)
 
     def test_logged_in_user_sees_admin_added_full_trip_details(self):
         self.client.login(username="traveler@example.com", password="pass12345")
@@ -104,6 +131,30 @@ class PackageBookingFlowTests(TestCase):
         self.assertEqual(booking.traveler_count, 3)
         self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_PENDING)
         self.assertEqual(booking.payment_method, TravelBooking.PAYMENT_METHOD_UPI)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Booking Confirmed - Goa Escape", mail.outbox[0].subject)
+        self.assertIn("traveler@example.com", mail.outbox[0].to)
+        self.assertIn("Hello Priya Sharma,", mail.outbox[0].body)
+        self.assertIn("Travelers: 3", mail.outbox[0].body)
+
+    def test_booking_email_never_uses_email_address_as_greeting_name(self):
+        registration.objects.filter(email="traveler@example.com").delete()
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("book_package", args=[self.package.id]),
+            {
+                "traveler_count": 2,
+                "travel_date": "2026-05-11",
+                "contact_number": "9876543210",
+                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+            },
+        )
+
+        self.assertRedirects(response, reverse("package_detail", args=[self.package.id]))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Hello Traveler,", mail.outbox[0].body)
+        self.assertNotIn("Hello traveler@example.com,", mail.outbox[0].body)
 
     def test_booking_requires_all_fields_including_travel_date(self):
         self.client.login(username="traveler@example.com", password="pass12345")
@@ -197,6 +248,251 @@ class PackageBookingFlowTests(TestCase):
         self.assertEqual(booking.admin_notes, "Train tickets are sold out for this date.")
         self.assertIsNotNone(booking.admin_reviewed_at)
 
+    def test_user_can_cancel_unpaid_booking(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=5),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("cancel_booking", args=[self.package.id]),
+            {"cancellation_reason": "My travel dates have changed."},
+        )
+
+        self.assertRedirects(response, reverse("package_detail", args=[self.package.id]))
+        booking.refresh_from_db()
+        self.assertEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_CANCELLED)
+        self.assertEqual(booking.cancellation_reason, "My travel dates have changed.")
+        self.assertIsNotNone(booking.admin_reviewed_at)
+
+    def test_user_must_provide_reason_to_cancel_booking(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=5),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("cancel_booking", args=[self.package.id]),
+            {"cancellation_reason": "   "},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please share a reason before cancelling your booking.")
+        booking.refresh_from_db()
+        self.assertNotEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_CANCELLED)
+
+    def test_user_cannot_cancel_paid_booking_from_self_service(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=5),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            payment_status=TravelBooking.PAYMENT_STATUS_COMPLETED,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("cancel_booking", args=[self.package.id]),
+            {"cancellation_reason": "I no longer need this trip."},
+        )
+
+        self.assertRedirects(response, reverse("package_detail", args=[self.package.id]))
+        booking.refresh_from_db()
+        self.assertNotEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_CANCELLED)
+        self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_COMPLETED)
+
+    def test_cancelled_booking_can_be_rebooked(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=1,
+            travel_date=timezone.localdate() + timedelta(days=5),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="25000.00",
+            approval_status=TravelBooking.APPROVAL_STATUS_CANCELLED,
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("book_package", args=[self.package.id]),
+            {
+                "traveler_count": 4,
+                "travel_date": "2026-05-15",
+                "contact_number": "9999999999",
+                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+            },
+        )
+
+        self.assertRedirects(response, reverse("package_detail", args=[self.package.id]))
+        booking.refresh_from_db()
+        self.assertEqual(booking.approval_status, TravelBooking.APPROVAL_STATUS_PENDING)
+        self.assertEqual(booking.traveler_count, 4)
+        self.assertEqual(booking.contact_number, "9999999999")
+        self.assertEqual(booking.cancellation_reason, "")
+
+    def test_user_can_view_booking_invoice(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=9),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("booking_invoice", args=[booking.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "BOOKING INVOICE")
+        self.assertContains(response, "Goa Escape")
+        self.assertContains(response, "Priya Sharma")
+
+    def test_user_can_download_booking_invoice(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=9),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("download_booking_invoice", args=[booking.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/html; charset=utf-8")
+        self.assertIn("attachment;", response["Content-Disposition"])
+        self.assertIn("Invoice Number", response.content.decode("utf-8"))
+
+    @override_settings(
+        RAZORPAY_KEY_ID="rzp_test_123",
+        RAZORPAY_KEY_SECRET="secret_123",
+        RAZORPAY_CURRENCY="INR",
+    )
+    @patch("accounts.views.urllib_request.urlopen")
+    def test_razorpay_booking_creates_order_and_redirects_to_checkout(self, mock_urlopen):
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps({"id": "order_test_123"}).encode("utf-8")
+        mock_context = MagicMock()
+        mock_context.__enter__.return_value = mock_response
+        mock_urlopen.return_value = mock_context
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("book_package", args=[self.package.id]),
+            {
+                "traveler_count": 2,
+                "travel_date": "2026-05-20",
+                "contact_number": "9876543210",
+                "payment_method": TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            },
+        )
+
+        self.assertRedirects(response, f"{reverse('package_detail', args=[self.package.id])}?pay=1")
+        booking = TravelBooking.objects.get(user=self.user, package=self.package)
+        self.assertEqual(booking.razorpay_order_id, "order_test_123")
+        self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_PENDING)
+        self.assertEqual(booking.payment_method, TravelBooking.PAYMENT_METHOD_RAZORPAY)
+
+    @override_settings(RAZORPAY_KEY_SECRET="secret_123")
+    def test_razorpay_callback_marks_booking_as_paid(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=9),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+            razorpay_order_id="order_test_123",
+        )
+        signature = hmac.new(
+            b"secret_123",
+            b"order_test_123|pay_test_123",
+            hashlib.sha256,
+        ).hexdigest()
+
+        response = self.client.post(
+            reverse("razorpay_callback"),
+            {
+                "razorpay_order_id": "order_test_123",
+                "razorpay_payment_id": "pay_test_123",
+                "razorpay_signature": signature,
+            },
+        )
+
+        self.assertRedirects(response, reverse("package_detail", args=[self.package.id]))
+        booking.refresh_from_db()
+        self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_COMPLETED)
+        self.assertEqual(booking.razorpay_payment_id, "pay_test_123")
+
+    @override_settings(RAZORPAY_WEBHOOK_SECRET="webhook_secret_123")
+    def test_razorpay_webhook_marks_booking_as_paid(self):
+        booking = TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=9),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+            razorpay_order_id="order_test_456",
+        )
+        payload = {
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_test_456",
+                        "order_id": "order_test_456",
+                    }
+                }
+            },
+        }
+        body = json.dumps(payload).encode("utf-8")
+        signature = hmac.new(b"webhook_secret_123", body, hashlib.sha256).hexdigest()
+
+        response = self.client.post(
+            reverse("razorpay_webhook"),
+            data=body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=signature,
+            HTTP_X_RAZORPAY_EVENT_ID="evt_test_456",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_COMPLETED)
+        self.assertEqual(booking.razorpay_payment_id, "pay_test_456")
+
     def test_plan_my_trip_filters_by_trip_type_and_budget(self):
         response = self.client.get(
             reverse("plan_my_trip"),
@@ -224,6 +520,46 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Apply filters to view packages")
         self.assertNotContains(response, "Goa Escape")
         self.assertNotContains(response, "Manali Adventure")
+
+    def test_cancelled_booking_does_not_show_as_active_booking_in_listings(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=1,
+            travel_date=timezone.localdate() + timedelta(days=6),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="25000.00",
+            approval_status=TravelBooking.APPROVAL_STATUS_CANCELLED,
+        )
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("packages"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "View Booking & Payment")
+
+    def test_admin_can_see_user_cancellation_reason(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=1,
+            travel_date=timezone.localdate() + timedelta(days=6),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="25000.00",
+            approval_status=TravelBooking.APPROVAL_STATUS_CANCELLED,
+            cancellation_reason="A family event came up unexpectedly.",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cancellation reason:")
+        self.assertContains(response, "A family event came up unexpectedly.")
 
     def test_plan_my_trip_shows_meaningful_budget_and_duration_options(self):
         response = self.client.get(reverse("plan_my_trip"))
@@ -317,6 +653,24 @@ class PackageBookingFlowTests(TestCase):
 
         self.assertRedirects(response, reverse("home"))
 
+    def test_feedback_page_submission_redirects_to_home(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.post(
+            reverse("submit_feedback"),
+            {
+                "name": "Priya Sharma",
+                "email": "priya@example.com",
+                "contact_number": "9876543210",
+                "message": "Loved the itinerary and support quality.",
+                "rating": 8,
+                "discovery_source": "Social media",
+                "return_to": "home",
+            },
+        )
+
+        self.assertRedirects(response, reverse("home"))
+
     def test_home_hides_feedback_button_for_logged_out_visitors(self):
         response = self.client.get(reverse("home"))
 
@@ -330,6 +684,17 @@ class PackageBookingFlowTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Rate your experience")
+        self.assertNotContains(response, "Give Feedback")
+        self.assertNotContains(response, '<a class="nav-link" href="%s">Feedback</a>' % reverse("feedback_page"), html=True)
+
+    def test_home_shows_logged_in_user_name_in_greeting(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "WELCOME BACK")
+        self.assertContains(response, "Hello, Priya Sharma")
 
     def test_feedback_page_requires_login(self):
         response = self.client.get(reverse("feedback_page"))
@@ -346,6 +711,14 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Feedback Time!")
         self.assertContains(response, "How satisfied were you when using the website?")
         self.assertContains(response, "Send")
+
+    def test_footer_shows_feedback_link_for_logged_in_user(self):
+        self.client.login(username="traveler@example.com", password="pass12345")
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("feedback_page"))
 
     def test_admin_feedback_management_lists_entries(self):
         from .models import UserFeedback

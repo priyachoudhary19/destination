@@ -116,10 +116,12 @@ class TravelBooking(models.Model):
     APPROVAL_STATUS_PENDING = "pending"
     APPROVAL_STATUS_APPROVED = "approved"
     APPROVAL_STATUS_REJECTED = "rejected"
+    APPROVAL_STATUS_CANCELLED = "cancelled"
     APPROVAL_STATUS_CHOICES = [
         (APPROVAL_STATUS_PENDING, "Pending Review"),
         (APPROVAL_STATUS_APPROVED, "Approved"),
         (APPROVAL_STATUS_REJECTED, "Rejected"),
+        (APPROVAL_STATUS_CANCELLED, "Cancelled by User"),
     ]
 
     PAYMENT_STATUS_PENDING = "pending"
@@ -167,6 +169,7 @@ class TravelBooking(models.Model):
     )
     bus_seats_confirmed = models.BooleanField(default=False)
     train_tickets_confirmed = models.BooleanField(default=False)
+    cancellation_reason = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
     admin_reviewed_at = models.DateTimeField(blank=True, null=True)
     payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))

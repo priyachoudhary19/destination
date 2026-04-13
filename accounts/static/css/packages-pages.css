@@ -448,6 +448,52 @@
     line-height: 1.55;
 }
 
+.booking-cancel-panel {
+    border: 1px dashed #d9a8ae;
+    border-radius: 16px;
+    padding: 12px 14px 14px;
+    background: linear-gradient(180deg, rgba(255, 250, 250, 0.95), rgba(255, 245, 246, 0.9));
+}
+
+.booking-cancel-panel summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: #8a3b45;
+    list-style: none;
+}
+
+.booking-cancel-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.booking-cancel-panel summary::after {
+    content: "Show";
+    float: right;
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: #b25661;
+}
+
+.booking-cancel-panel[open] summary::after {
+    content: "Hide";
+}
+
+.booking-cancel-form {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.booking-invoice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.booking-invoice-actions .btn {
+    flex: 1 1 200px;
+}
+
 .table-subtext {
     color: var(--muted);
     font-size: 0.86rem;

@@ -17,8 +17,11 @@ from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.cache import add_never_cache_headers
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -69,10 +72,10 @@ def create_razorpay_order(booking):
     except error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="ignore")
         logger.warning("Razorpay order creation failed: %s", body)
-        raise ValueError("Razorpay order create nahi ho paaya.") from exc
+        raise ValueError("The Razorpay order could not be created.") from exc
     except error.URLError as exc:
         logger.warning("Razorpay order creation network error: %s", exc)
-        raise ValueError("Razorpay se connection nahi ho paaya.") from exc
+        raise ValueError("A connection to Razorpay could not be established.") from exc
 
 
 def verify_razorpay_signature(order_id, payment_id, signature):
@@ -118,6 +121,74 @@ def update_booking_payment(booking, payment_id="", signature="", status=None, er
     booking.save()
 
 
+def get_registered_display_name(user):
+    username_value = (user.username or "").strip()
+    safe_username = "" if "@" in username_value else username_value
+    return (
+        registration.objects.filter(email__in=[user.email, user.username])
+        .values_list("name", flat=True)
+        .first()
+        or user.get_full_name()
+        or safe_username
+        or "Traveler"
+    )
+
+
+def build_invoice_context(booking):
+    invoice_number = f"DL-{booking.booked_at:%Y%m%d}-{booking.id:04d}"
+    return {
+        "booking": booking,
+        "package": booking.package,
+        "invoice_number": invoice_number,
+        "customer_name": get_registered_display_name(booking.user),
+        "travel_date_label": (
+            booking.travel_date.strftime("%d %b %Y") if booking.travel_date else "Not selected yet"
+        ),
+        "booked_at_label": timezone.localtime(booking.booked_at).strftime("%d %b %Y, %I:%M %p"),
+    }
+
+
+def send_booking_confirmation_email(booking, created):
+    recipient = (booking.user.email or "").strip()
+    if not recipient:
+        return
+
+    greeting_name = get_registered_display_name(booking.user)
+
+    subject = (
+        f"Booking Confirmed - {booking.package.title}"
+        if created
+        else f"Booking Updated - {booking.package.title}"
+    )
+    travel_date = booking.travel_date.strftime("%d %b %Y") if booking.travel_date else "Not selected yet"
+    message = "\n".join(
+        [
+            f"Hello {greeting_name},",
+            "",
+            (
+                f"Your booking for {booking.package.title} has been confirmed."
+                if created
+                else f"Your booking for {booking.package.title} has been updated."
+            ),
+            f"Travel date: {travel_date}",
+            f"Travelers: {booking.traveler_count}",
+            f"Payment method: {booking.get_payment_method_display()}",
+            f"Payment status: {booking.get_payment_status_display()}",
+            f"Booking amount: Rs {booking.payment_amount}",
+            "",
+            "Thank you for choosing Dreamland Destinations.",
+        ]
+    )
+    send_mail(
+        subject,
+        message,
+        settings.EMAIL_HOST_USER or "no-reply@dreamland.local",
+        [recipient],
+        fail_silently=True,
+    )
+
+
+@ensure_csrf_cookie
 def register(request):
     if request.method == "POST":
         email = request.POST["email"].strip().lower()
@@ -134,7 +205,7 @@ def register(request):
 
 
         if User.objects.filter(username=email).exists():
-            return render(
+            response = render(
                 request,
                 "register.html",
                 {
@@ -142,6 +213,8 @@ def register(request):
                     "form_data": form_data,
                 },
             )
+            add_never_cache_headers(response)
+            return response
 
         password_errors = []
         if len(password) < 8:
@@ -162,7 +235,7 @@ def register(request):
 
         if password_errors:
             unique_errors = list(dict.fromkeys(password_errors))
-            return render(
+            response = render(
                 request,
                 "register.html",
                 {
@@ -170,6 +243,8 @@ def register(request):
                     "form_data": form_data,
                 },
             )
+            add_never_cache_headers(response)
+            return response
 
         User.objects.create_user(username=email, email=email, password=password)
 
@@ -197,9 +272,12 @@ def register(request):
         messages.success(request, "Registration successful. Please login.")
         return redirect("login")
 
-    return render(request, "register.html", {"form_data": {}})
+    response = render(request, "register.html", {"form_data": {}})
+    add_never_cache_headers(response)
+    return response
 
 
+@ensure_csrf_cookie
 def login_view(request):
     next_url = request.GET.get("next") or request.POST.get("next")
 
@@ -215,11 +293,16 @@ def login_view(request):
                 return redirect(next_url)
             return redirect("home")
 
-        return render(request, "login.html", {"error": "Invalid credentials", "next": next_url})
+        response = render(request, "login.html", {"error": "Invalid credentials", "next": next_url})
+        add_never_cache_headers(response)
+        return response
 
-    return render(request, "login.html", {"next": next_url})
+    response = render(request, "login.html", {"next": next_url})
+    add_never_cache_headers(response)
+    return response
 
 
+@ensure_csrf_cookie
 def admin_login_view(request):
     next_url = request.GET.get("next") or request.POST.get("next")
 
@@ -237,17 +320,24 @@ def admin_login_view(request):
                 return redirect(next_url)
             return redirect("admin_home")
 
-        return render(
+        response = render(
             request,
             "admin_login.html",
             {"error": "Invalid admin credentials", "next": next_url},
         )
+        add_never_cache_headers(response)
+        return response
 
-    return render(request, "admin_login.html", {"next": next_url})
+    response = render(request, "admin_login.html", {"next": next_url})
+    add_never_cache_headers(response)
+    return response
 
 
 def home(request):
-    return render(request, "home.html")
+    greeting_name = ""
+    if request.user.is_authenticated and not request.user.is_staff:
+        greeting_name = get_registered_display_name(request.user)
+    return render(request, "home.html", {"greeting_name": greeting_name})
 
 
 def help_center(request):
@@ -428,7 +518,9 @@ def packages(request):
     booked_package_ids = set()
     user_bookings = {}
     if request.user.is_authenticated:
-        bookings = TravelBooking.objects.filter(user=request.user).select_related("package")
+        bookings = TravelBooking.objects.filter(user=request.user).exclude(
+            approval_status=TravelBooking.APPROVAL_STATUS_CANCELLED
+        ).select_related("package")
         booked_package_ids = {booking.package_id for booking in bookings}
         user_bookings = {booking.package_id: booking for booking in bookings}
 
@@ -459,6 +551,7 @@ def package_detail(request, package_id):
         booking_form = TravelBookingForm(instance=booking)
         if (
             booking
+            and booking.approval_status != TravelBooking.APPROVAL_STATUS_CANCELLED
             and booking.payment_method == TravelBooking.PAYMENT_METHOD_RAZORPAY
             and booking.payment_status != TravelBooking.PAYMENT_STATUS_COMPLETED
             and booking.razorpay_order_id
@@ -472,7 +565,7 @@ def package_detail(request, package_id):
                 "description": f"{package.title} booking",
                 "order_id": booking.razorpay_order_id,
                 "callback_url": request.build_absolute_uri(reverse("razorpay_callback")),
-                "prefill_name": request.user.get_full_name() or request.user.username,
+                "prefill_name": get_registered_display_name(request.user),
                 "prefill_email": request.user.email,
                 "prefill_contact": booking.contact_number,
                 "theme_color": "#1f6feb",
@@ -521,6 +614,10 @@ def book_package(request, package_id):
     booking.user = request.user
     booking.package = package
     created = booking.pk is None
+    if booking.approval_status == TravelBooking.APPROVAL_STATUS_CANCELLED:
+        booking.approval_status = TravelBooking.APPROVAL_STATUS_PENDING
+        booking.admin_reviewed_at = None
+        booking.cancellation_reason = ""
     booking.payment_amount = booking.total_price()
     booking.currency = settings.RAZORPAY_CURRENCY or "INR"
 
@@ -535,7 +632,7 @@ def book_package(request, package_id):
 
     if booking.payment_method == TravelBooking.PAYMENT_METHOD_RAZORPAY:
         if booking.payment_status == TravelBooking.PAYMENT_STATUS_COMPLETED:
-            messages.info(request, "Is booking ka payment already complete hai.")
+            messages.info(request, "Payment for this booking has already been completed.")
             return redirect("package_detail", package_id=package.id)
 
         try:
@@ -550,12 +647,15 @@ def book_package(request, package_id):
         booking.last_payment_error = ""
         booking.payment_status = TravelBooking.PAYMENT_STATUS_PENDING
         booking.save(update_fields=["razorpay_order_id", "last_payment_error", "payment_status"])
+        send_booking_confirmation_email(booking, created)
 
         if created:
-            messages.success(request, f"{package.title} booking created. Ab payment complete kar dijiye.")
+            messages.success(request, f"{package.title} booking has been created. Please complete the payment.")
         else:
-            messages.info(request, f"{package.title} booking update ho gayi. Payment complete kar dijiye.")
+            messages.info(request, f"{package.title} booking has been updated. Please complete the payment.")
         return redirect(f"{reverse('package_detail', args=[package.id])}?pay=1")
+
+    send_booking_confirmation_email(booking, created)
 
     if created:
         messages.success(request, f"{package.title} booked successfully.")
@@ -563,6 +663,83 @@ def book_package(request, package_id):
         messages.info(request, f"Your booking details for {package.title} have been updated.")
 
     return redirect("package_detail", package_id=package.id)
+
+
+@login_required(login_url="/login/")
+def cancel_booking(request, package_id):
+    package = get_object_or_404(TravelPackage, id=package_id, is_active=True)
+    if request.method != "POST":
+        return redirect("package_detail", package_id=package.id)
+
+    booking = get_object_or_404(TravelBooking, user=request.user, package=package)
+
+    if booking.approval_status == TravelBooking.APPROVAL_STATUS_CANCELLED:
+        messages.info(request, f"The booking for {package.title} has already been cancelled.")
+        return redirect("package_detail", package_id=package.id)
+
+    if booking.payment_status in {
+        TravelBooking.PAYMENT_STATUS_ADVANCE,
+        TravelBooking.PAYMENT_STATUS_COMPLETED,
+    }:
+        messages.error(
+            request,
+            "Paid bookings cannot be cancelled here. Please contact the support team for refund assistance.",
+        )
+        return redirect("package_detail", package_id=package.id)
+
+    cancellation_reason = request.POST.get("cancellation_reason", "").strip()
+    if not cancellation_reason:
+        messages.error(request, "Please share a reason before cancelling your booking.")
+        return redirect("package_detail", package_id=package.id)
+
+    booking.approval_status = TravelBooking.APPROVAL_STATUS_CANCELLED
+    booking.admin_reviewed_at = timezone.now()
+    booking.cancellation_reason = cancellation_reason
+    booking.razorpay_order_id = ""
+    booking.razorpay_payment_id = ""
+    booking.razorpay_signature = ""
+    booking.razorpay_last_event_id = ""
+    booking.last_payment_error = ""
+    booking.save(
+        update_fields=[
+            "approval_status",
+            "admin_reviewed_at",
+            "cancellation_reason",
+            "razorpay_order_id",
+            "razorpay_payment_id",
+            "razorpay_signature",
+            "razorpay_last_event_id",
+            "last_payment_error",
+        ]
+    )
+    messages.success(request, f"{package.title} booking cancelled successfully.")
+    return redirect("package_detail", package_id=package.id)
+
+
+@login_required(login_url="/login/")
+def booking_invoice(request, booking_id):
+    booking = get_object_or_404(
+        TravelBooking.objects.select_related("package", "user"),
+        id=booking_id,
+        user=request.user,
+    )
+    return render(request, "booking_invoice.html", build_invoice_context(booking))
+
+
+@login_required(login_url="/login/")
+def download_booking_invoice(request, booking_id):
+    booking = get_object_or_404(
+        TravelBooking.objects.select_related("package", "user"),
+        id=booking_id,
+        user=request.user,
+    )
+    invoice_context = build_invoice_context(booking)
+    html = render_to_string("booking_invoice_download.html", invoice_context, request=request)
+    response = HttpResponse(html, content_type="text/html; charset=utf-8")
+    response["Content-Disposition"] = (
+        f'attachment; filename="invoice-{invoice_context["invoice_number"].lower()}.html"'
+    )
+    return response
 
 
 @login_required(login_url="/admin-portal/login/")
