@@ -191,3 +191,20 @@ class TravelBooking(models.Model):
 
     def total_price(self):
         return self.package.price * self.traveler_count
+
+    @property
+    def resolved_payment_status(self):
+        if self.payment_status != self.PAYMENT_STATUS_PENDING:
+            return self.payment_status
+
+        # Older rows can occasionally keep a stale "pending" value even after
+        # a successful Razorpay callback/webhook has stored payment evidence.
+        if self.paid_at or self.razorpay_payment_id:
+            return self.PAYMENT_STATUS_COMPLETED
+
+        return self.payment_status
+
+    @property
+    def resolved_payment_status_display(self):
+        status_labels = dict(self.PAYMENT_STATUS_CHOICES)
+        return status_labels.get(self.resolved_payment_status, self.get_payment_status_display())

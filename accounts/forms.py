@@ -125,6 +125,16 @@ class TravelBookingForm(forms.ModelForm):
         for field_name in ["traveler_count", "travel_date", "contact_number", "payment_method"]:
             self.fields[field_name].required = True
             self.fields[field_name].widget.attrs["required"] = "required"
+        self.fields["payment_method"].choices = [
+            (
+                TravelBooking.PAYMENT_METHOD_RAZORPAY,
+                dict(TravelBooking.PAYMENT_METHOD_CHOICES)[TravelBooking.PAYMENT_METHOD_RAZORPAY],
+            ),
+            (
+                TravelBooking.PAYMENT_METHOD_CASH,
+                dict(TravelBooking.PAYMENT_METHOD_CHOICES)[TravelBooking.PAYMENT_METHOD_CASH],
+            ),
+        ]
         self.fields["travel_date"].widget.attrs["min"] = timezone.localdate().isoformat()
 
     def clean_travel_date(self):

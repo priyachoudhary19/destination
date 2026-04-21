@@ -502,12 +502,14 @@ def admin_home(request):
 
     feedback_count = UserFeedback.objects.count()
     latest_feedback = UserFeedback.objects.first()
+    registration_count = registration.objects.count()
     return render(
         request,
         "admin_home.html",
         {
             "feedback_count": feedback_count,
             "latest_feedback": latest_feedback,
+            "registration_count": registration_count,
         },
     )
 
@@ -773,7 +775,28 @@ def manage_bookings(request):
     if not request.user.is_staff:
         return redirect("admin_login")
 
-    return render(request, "admin_bookings.html", {"bookings": _booking_rows_with_forms()})
+    bookings = _booking_rows_with_forms()
+    booking_summary = {
+        "total": len(bookings),
+        "pending_reviews": sum(
+            1 for booking in bookings if booking.approval_status == TravelBooking.APPROVAL_STATUS_PENDING
+        ),
+        "approved": sum(
+            1 for booking in bookings if booking.approval_status == TravelBooking.APPROVAL_STATUS_APPROVED
+        ),
+        "completed_payments": sum(
+            1 for booking in bookings if booking.resolved_payment_status == TravelBooking.PAYMENT_STATUS_COMPLETED
+        ),
+    }
+
+    return render(
+        request,
+        "admin_bookings.html",
+        {
+            "bookings": bookings,
+            "booking_summary": booking_summary,
+        },
+    )
 
 
 @login_required(login_url="/admin-portal/login/")
@@ -783,6 +806,21 @@ def manage_feedback(request):
 
     feedback_list = UserFeedback.objects.all()
     return render(request, "admin_feedback.html", {"feedback_list": feedback_list})
+
+
+@login_required(login_url="/admin-portal/login/")
+def manage_registrations(request):
+    if not request.user.is_staff:
+        return redirect("admin_login")
+
+    registration_list = registration.objects.all().order_by("-id")
+    return render(
+        request,
+        "admin_registrations.html",
+        {
+            "registration_list": registration_list,
+        },
+    )
 
 
 @login_required(login_url="/admin-portal/login/")

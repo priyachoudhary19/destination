@@ -42,6 +42,7 @@ urlpatterns = [
     path('admin-portal/packages/', manage_packages, name='manage_packages'),
     path('admin-portal/bookings/', manage_bookings, name='manage_bookings'),
     path('admin-portal/feedback/', manage_feedback, name='manage_feedback'),
+    path('admin-portal/registrations/', manage_registrations, name='manage_registrations'),
     path('admin-portal/bookings/<int:booking_id>/approval/', update_booking_approval, name='update_booking_approval'),
     path('admin-portal/packages/edit/<int:package_id>/', edit_package, name='edit_package'),
     path('admin-portal/packages/delete/<int:package_id>/', delete_package, name='delete_package'),

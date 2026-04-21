@@ -11,6 +11,7 @@ from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from .forms import TravelBookingForm
 from .models import TravelBooking, TravelPackage, UserFeedback, registration
 
 
@@ -121,7 +122,7 @@ class PackageBookingFlowTests(TestCase):
                 "traveler_count": 3,
                 "travel_date": "2026-05-10",
                 "contact_number": "9876543210",
-                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+                "payment_method": TravelBooking.PAYMENT_METHOD_CASH,
                 "special_requests": "Need airport pickup",
             },
         )
@@ -130,7 +131,7 @@ class PackageBookingFlowTests(TestCase):
         booking = TravelBooking.objects.get(user=self.user, package=self.package)
         self.assertEqual(booking.traveler_count, 3)
         self.assertEqual(booking.payment_status, TravelBooking.PAYMENT_STATUS_PENDING)
-        self.assertEqual(booking.payment_method, TravelBooking.PAYMENT_METHOD_UPI)
+        self.assertEqual(booking.payment_method, TravelBooking.PAYMENT_METHOD_CASH)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Booking Confirmed - Goa Escape", mail.outbox[0].subject)
         self.assertIn("traveler@example.com", mail.outbox[0].to)
@@ -147,7 +148,7 @@ class PackageBookingFlowTests(TestCase):
                 "traveler_count": 2,
                 "travel_date": "2026-05-11",
                 "contact_number": "9876543210",
-                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+                "payment_method": TravelBooking.PAYMENT_METHOD_CASH,
             },
         )
 
@@ -175,6 +176,23 @@ class PackageBookingFlowTests(TestCase):
             TravelBooking.objects.filter(user=self.user, package=self.package).exists()
         )
 
+    def test_booking_form_limits_payment_methods_to_razorpay_and_cash(self):
+        form = TravelBookingForm()
+
+        self.assertEqual(
+            list(form.fields["payment_method"].choices),
+            [
+                (
+                    TravelBooking.PAYMENT_METHOD_RAZORPAY,
+                    "Razorpay (Online Payment)",
+                ),
+                (
+                    TravelBooking.PAYMENT_METHOD_CASH,
+                    "Cash at Office",
+                ),
+            ],
+        )
+
     def test_booking_rejects_past_travel_date(self):
         self.client.login(username="traveler@example.com", password="pass12345")
 
@@ -184,7 +202,7 @@ class PackageBookingFlowTests(TestCase):
                 "traveler_count": 2,
                 "travel_date": (timezone.localdate() - timedelta(days=1)).isoformat(),
                 "contact_number": "9876543210",
-                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+                "payment_method": TravelBooking.PAYMENT_METHOD_CASH,
             },
         )
 
@@ -339,7 +357,7 @@ class PackageBookingFlowTests(TestCase):
                 "traveler_count": 4,
                 "travel_date": "2026-05-15",
                 "contact_number": "9999999999",
-                "payment_method": TravelBooking.PAYMENT_METHOD_UPI,
+                "payment_method": TravelBooking.PAYMENT_METHOD_CASH,
             },
         )
 
@@ -561,6 +579,121 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "Cancellation reason:")
         self.assertContains(response, "A family event came up unexpectedly.")
 
+    def test_admin_manage_bookings_shows_payment_status(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=10),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            payment_status=TravelBooking.PAYMENT_STATUS_COMPLETED,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Payment Status")
+        self.assertContains(response, "Completed")
+
+    def test_admin_manage_bookings_shows_contact_column_without_approval_column(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=10),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<th>Contact</th>", html=True)
+        self.assertContains(response, 'class="booking-contact-cell"', html=False)
+        self.assertContains(response, 'class="booking-col-contact"', html=False)
+        self.assertNotContains(response, "<th>Approval</th>", html=True)
+        self.assertNotContains(response, 'class="booking-approval-cell"', html=False)
+        self.assertNotContains(response, 'class="booking-col-approval"', html=False)
+        self.assertContains(response, "9876543210")
+
+    def test_admin_manage_bookings_shows_reviewed_state_in_action_column(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=10),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+            approval_status=TravelBooking.APPROVAL_STATUS_APPROVED,
+        )
+        TravelBooking.objects.create(
+            user=self.admin_user,
+            package=self.package_two,
+            traveler_count=1,
+            travel_date=timezone.localdate() + timedelta(days=12),
+            contact_number="9999999999",
+            payment_method=TravelBooking.PAYMENT_METHOD_CASH,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="42000.00",
+            approval_status=TravelBooking.APPROVAL_STATUS_REJECTED,
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reviewed")
+        self.assertContains(response, "Approved")
+        self.assertContains(response, "Rejected")
+
+    def test_admin_manage_bookings_uses_abbreviated_month_date_format(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.datetime(2026, 9, 1).date(),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_UPI,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "01 Sep 2026")
+        self.assertNotContains(response, "01/09/2026")
+
+    def test_admin_manage_bookings_treats_stale_paid_booking_as_completed(self):
+        TravelBooking.objects.create(
+            user=self.user,
+            package=self.package,
+            traveler_count=2,
+            travel_date=timezone.localdate() + timedelta(days=10),
+            contact_number="9876543210",
+            payment_method=TravelBooking.PAYMENT_METHOD_RAZORPAY,
+            payment_status=TravelBooking.PAYMENT_STATUS_PENDING,
+            payment_amount="50000.00",
+            razorpay_payment_id="pay_stale_123",
+            paid_at=timezone.now(),
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_bookings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Completed")
+        self.assertNotContains(response, '<strong class="booking-status-pill booking-payment-pending">Pending</strong>', html=True)
+
     def test_plan_my_trip_shows_meaningful_budget_and_duration_options(self):
         response = self.client.get(reverse("plan_my_trip"))
 
@@ -741,6 +874,47 @@ class PackageBookingFlowTests(TestCase):
         self.assertContains(response, "riya@example.com")
         self.assertContains(response, "8/10")
         self.assertContains(response, "Google search")
+
+    def test_admin_home_hides_registration_management_card(self):
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("admin_home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "User Registrations")
+        self.assertNotContains(response, "Total registered:")
+        self.assertNotContains(response, reverse("manage_registrations"))
+
+    def test_admin_registration_management_lists_total_and_details(self):
+        registration.objects.create(
+            name="Aman Verma",
+            email="aman@example.com",
+            mobile="9998887776",
+            password="Aman@123",
+            address="MG Road",
+            state="Delhi",
+            city="New Delhi",
+            pincode="110001",
+        )
+        self.client.login(username="admin@example.com", password="adminpass123")
+
+        response = self.client.get(reverse("manage_registrations"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Registered Users")
+        self.assertContains(response, "Total Registrations")
+        self.assertContains(response, "2")
+        self.assertContains(response, "Priya Sharma")
+        self.assertContains(response, "traveler@example.com")
+        self.assertContains(response, "9876543210")
+        self.assertContains(response, "City:")
+        self.assertContains(response, "Panaji")
+        self.assertContains(response, "State:")
+        self.assertContains(response, "Goa")
+        self.assertContains(response, "PIN: 403001")
+        self.assertContains(response, "Aman Verma")
+        self.assertContains(response, "aman@example.com")
+        self.assertContains(response, "MG Road")
 
     def test_admin_can_delete_feedback_entry(self):
         from .models import UserFeedback

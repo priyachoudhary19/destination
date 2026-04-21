@@ -1425,9 +1425,20 @@
 .admin-feedback-table th:nth-child(3) { width: 13%; }
 .admin-feedback-table th:nth-child(4) { width: 17%; }
 .admin-feedback-table th:nth-child(5) { width: 28%; }
+.admin-registrations-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.admin-registrations-table th:nth-child(1) { width: 28%; }
+.admin-registrations-table th:nth-child(2) { width: 16%; }
+.admin-registrations-table th:nth-child(3) { width: 22%; }
+.admin-registrations-table th:nth-child(4) { width: 34%; }
 
 .admin-feedback-table th,
-.admin-feedback-table td {
+.admin-feedback-table td,
+.admin-registrations-table th,
+.admin-registrations-table td {
     padding: 22px 18px;
 }
 
@@ -1495,6 +1506,66 @@
     white-space: nowrap;
 }
 
+.admin-registration-location-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 190px;
+    padding: 4px 0;
+}
+
+.admin-registration-city-row,
+.admin-registration-state-row,
+.admin-registration-pin-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.admin-registration-label {
+    min-width: 42px;
+    color: #7a889f;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-registration-city,
+.admin-registration-state,
+.admin-registration-pincode {
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.admin-registration-city {
+    color: #1f365c;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.admin-registration-state {
+    color: #62748b;
+    font-size: 0.93rem;
+}
+
+.admin-registration-pincode {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(205, 217, 235, 0.95);
+    background: rgba(244, 248, 255, 0.96);
+    color: #2d4d7a;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
 .admin-feedback-score,
 .admin-feedback-source {
     display: inline-flex;
@@ -1537,10 +1608,18 @@
     vertical-align: middle;
 }
 
+.admin-registrations-table td {
+    vertical-align: middle;
+}
+
 .admin-feedback-table td:nth-child(1),
 .admin-feedback-table td:nth-child(2),
 .admin-feedback-table td:nth-child(5) {
     text-align: left;
+}
+
+.admin-registrations-table td:nth-child(2) {
+    text-align: center;
 }
 
 @media (max-width: 767.98px) {

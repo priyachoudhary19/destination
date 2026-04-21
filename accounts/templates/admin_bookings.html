@@ -2,84 +2,225 @@
 {% load tz %}
 
 {% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
+
+<style>
+    .admin-bookings-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        border-radius: 10px;
+        overflow: hidden;
+    .booking-admin-summary-card strong {
+        font-family: 'Montserrat', Arial, sans-serif;
+        font-size: 2.6em;
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #1a223a;
+        display: block;
+        margin-bottom: 6px;
+        line-height: 1.1;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    }
+    .admin-bookings-table th, .admin-bookings-table td {
+        padding: 16px 12px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .admin-bookings-table th {
+        background: #f7fafd;
+        font-weight: 700;
+        font-size: 1.07em;
+        border-bottom: 2px solid #e3e8ee;
+        letter-spacing: 0.02em;
+    }
+    .admin-bookings-table tbody tr {
+        border-bottom: 1px solid #f0f2f5;
+        transition: background 0.2s;
+    }
+    .admin-bookings-table tbody tr:nth-child(even) {
+        background: #f9fbfc;
+    }
+    .admin-bookings-table tbody tr:hover {
+        background: #eaf6ff;
+    }
+    .booking-primary-text, .booking-secondary-text, .booking-package-title {
+        font-size: 1em;
+        color: #22243a;
+    }
+    .booking-secondary-text {
+        color: #6c7a89;
+        font-size: 0.97em;
+        display: block;
+        margin-top: 2px;
+    }
+    .booking-package-title {
+        font-weight: 600;
+        color: #1a4fa0;
+        margin-bottom: 2px;
+        display: block;
+    }
+    .booking-note-line {
+        color: #7a869a;
+        font-size: 0.95em;
+        margin-top: 2px;
+    }
+    .booking-count-badge {
+        background: #eaf6ff;
+        color: #1a4fa0;
+        border-radius: 50%;
+        padding: 7px 13px;
+        font-weight: 600;
+        font-size: 1em;
+        display: inline-block;
+        min-width: 36px;
+        text-align: center;
+    }
+    .booking-payment-text {
+        font-weight: 700;
+        font-size: 1.05em;
+    }
+    .booking-action-cell .btn {
+        min-width: 80px;
+        margin-bottom: 4px;
+    }
+</style>
 
 <section class="admin-bookings-page">
-    <div class="manage-card">
-        <h3>Manage Bookings</h3>
+    <div class="booking-admin-shell">
+        <div class="booking-admin-hero">
+            <div class="booking-admin-hero-copy">
+                <p class="booking-admin-eyebrow">Admin Workspace</p>
+                <h3>Manage Bookings</h3>
+                <p class="booking-admin-lead">Review traveler requests, confirm approvals, and monitor payment progress from one clean dashboard.</p>
+            </div>
 
-        <div class="table-responsive">
-            <table class="table align-middle manage-table admin-bookings-table">
-                <colgroup>
-                    <col class="booking-col-user">
-                    <col class="booking-col-package">
-                    <col class="booking-col-approval">
-                    <col class="booking-col-travel-date">
-                    <col class="booking-col-travelers">
-                    <col class="booking-col-contact">
-                    <col class="booking-col-booked-on">
-                    <col class="booking-col-actions">
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Package</th>
-                        <th>Approval</th>
-                        <th>Travel Date</th>
-                        <th>Travelers</th>
-                        <th>Contact</th>
-                        <th>Booked On</th>
-                        <th>Admin Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for booking in bookings %}
-                    <tr>
-                        <td class="booking-user-cell">
-                            <strong class="booking-user-email">{{ booking.user.username }}</strong>
-                        </td>
-                        <td class="booking-package-cell">
-                            <strong class="booking-package-title">{{ booking.package.title }}</strong>
-                            {% if booking.special_requests %}
-                            <div class="table-subtext">{{ booking.special_requests }}</div>
-                            {% endif %}
-                            {% if booking.cancellation_reason %}
-                            <div class="table-subtext"><strong>Cancellation reason:</strong> {{ booking.cancellation_reason }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="booking-status-cell">
-                            {% if booking.approval_status == "approved" %}
-                            <strong class="booking-status-pill booking-status-approved">Approved</strong>
-                            {% elif booking.approval_status == "cancelled" %}
-                            <strong class="booking-status-pill booking-status-rejected">Cancelled by User</strong>
-                            {% elif booking.approval_status == "rejected" %}
-                            <strong class="booking-status-pill booking-status-rejected">Rejected</strong>
-                            {% else %}
-                            <strong class="booking-status-pill booking-status-pending">Pending Review</strong>
-                            {% endif %}
-                        </td>
-                        <td class="booking-date-cell">{{ booking.travel_date|default:"Not selected" }}</td>
-                        <td><span class="booking-count-badge">{{ booking.traveler_count }}</span></td>
-                        <td class="booking-contact-cell">{{ booking.contact_number|default:"-" }}</td>
-                        <td class="booking-booked-cell">{{ booking.booked_at|localtime|date:"d M Y, h:i A" }}</td>
-                        <td class="booking-action-cell">
-                            <form method="post" action="{% url 'update_booking_approval' booking.id %}" class="booking-action-form">
-                                {% csrf_token %}
-                                <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">
-                                    Approve
-                                </button>
-                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">
-                                    Reject
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center">No users have made a booking yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="booking-admin-summary">
+                <article class="booking-admin-summary-card">
+                    <span>Total Bookings</span>
+                    <strong>{{ booking_summary.total }}</strong>
+                    <p>All recorded booking requests</p>
+                </article>
+                <article class="booking-admin-summary-card booking-admin-summary-warm">
+                    <span>Pending Review</span>
+                    <strong>{{ booking_summary.pending_reviews }}</strong>
+                    <p>Requests waiting for admin action</p>
+                </article>
+                <article class="booking-admin-summary-card booking-admin-summary-cool">
+                    <span>Approved</span>
+                    <strong>{{ booking_summary.approved }}</strong>
+                    <p>Bookings already confirmed</p>
+                </article>
+                <article class="booking-admin-summary-card booking-admin-summary-success">
+                    <span>Payments Done</span>
+                    <strong>{{ booking_summary.completed_payments }}</strong>
+                    <p>Bookings with completed payment</p>
+                </article>
+            </div>
+        </div>
+
+        <div class="manage-card booking-table-card">
+            <div class="booking-table-card-head">
+                <div>
+                    <h4>Booking Register</h4>
+                    <p>Structured view of traveler, contact number, booking decision and payment state.</p>
+                </div>
+            </div>
+
+            <div class="table-responsive booking-table-wrap">
+                <table class="table align-middle manage-table admin-bookings-table">
+                    <colgroup>
+                        <col class="booking-col-user">
+                        <col class="booking-col-package">
+                        <col class="booking-col-contact">
+                        <col class="booking-col-travel-date">
+                        <col class="booking-col-travelers">
+                        <col class="booking-col-booked-on">
+                        <col class="booking-col-actions">
+                        <col class="booking-col-payment">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Package</th>
+                            <th>Contact</th>
+                            <th>Travel Date</th>
+                            <th>Travelers</th>
+                            <th>Booked On</th>
+                            <th>Admin Action</th>
+                            <th class="booking-payment-heading">
+                                <span class="booking-th-stack">Payment</span>
+                                <span class="booking-th-stack">Status</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in bookings %}
+                        <tr>
+                            <td class="booking-user-cell">
+                                <span class="booking-primary-text booking-user-name">{{ booking.display_name|default:booking.user.username }}</span>
+                                <span class="booking-secondary-text booking-user-email">{{ booking.display_email|default:booking.user.email }}</span>
+                            </td>
+                            <td class="booking-package-cell">
+                                <strong class="booking-package-title">{{ booking.package.title }}</strong>
+                                {% if booking.special_requests %}
+                                <div class="booking-note-line">Special request: {{ booking.special_requests }}</div>
+                                {% endif %}
+                                {% if booking.cancellation_reason %}
+                                <div class="booking-note-line">Cancellation reason: {{ booking.cancellation_reason }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="booking-contact-cell">
+                                <span class="booking-primary-text" style="white-space: nowrap;">{{ booking.contact_number|default:"-" }}</span>
+                            </td>
+                            <td class="booking-date-cell">
+                                <span class="booking-primary-text">{{ booking.travel_date|date:"d M Y"|default:"Not selected" }}</span>
+                            </td>
+                            <td class="booking-travelers-cell">
+                                <span class="booking-count-badge">{{ booking.traveler_count }}</span>
+                            </td>
+                            <td class="booking-booked-cell">
+                                <span class="booking-primary-text">{{ booking.booked_at|localtime|date:"d M Y" }}</span>
+                                <span class="booking-secondary-text">{{ booking.booked_at|localtime|date:"h:i A" }}</span>
+                            </td>
+                            <td class="booking-action-cell">
+                                {% if booking.approval_status == "pending" %}
+                                    <form method="post" action="{% url 'update_booking_approval' booking.id %}" class="booking-action-form">
+                                        {% csrf_token %}
+                                        <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">
+                                            Approve
+                                        </button>
+                                        <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">
+                                            Reject
+                                        </button>
+                                    </form>
+                                {% elif booking.approval_status == "approved" %}
+                                    <span class="booking-reviewed-state" style="color: #219150; font-weight: 600;">Accepted</span>
+                                {% elif booking.approval_status == "rejected" %}
+                                    <span class="booking-reviewed-state" style="color: #d32f2f; font-weight: 600;">Rejected</span>
+                                {% else %}
+                                    <span class="booking-reviewed-state">Reviewed</span>
+                                {% endif %}
+                            </td>
+                            <td class="booking-payment-cell">
+                                <span class="booking-payment-text booking-payment-text-{{ booking.resolved_payment_status }}">
+                                    {{ booking.resolved_payment_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="booking-empty-state text-center">
+                                No users have made a booking yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </section>
