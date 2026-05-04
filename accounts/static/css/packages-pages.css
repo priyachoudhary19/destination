@@ -87,7 +87,7 @@
     max-height: calc(1.55em * 2);
 }
 .package-price {
-    margin-top: auto;
+    margin-top: 4px;
     color: var(--primary);
     font-weight: 800;
     font-size: 1.2rem;
@@ -100,6 +100,8 @@
 .package-detail-points {
     display: grid;
     gap: 8px;
+    flex: 1;
+    align-content: start;
     color: #324766;
 }
 
